@@ -28,6 +28,7 @@ import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.SmppSessionConfiguration;
 import com.cloudhopper.smpp.impl.DefaultSmppClient;
 import com.cloudhopper.smpp.impl.DefaultSmppSessionHandler;
+import com.cloudhopper.smpp.pdu.PduResponse;
 import com.cloudhopper.smpp.pdu.SubmitSm;
 import com.cloudhopper.smpp.type.Address;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -275,6 +276,19 @@ public class PerformanceClientMain {
                         this.allSubmitResponseReceivedSignal.countDown();
                     }
                 }
+            }
+
+            @Override
+            public void fireAsyncPduResponseReceived(PduResponse pduResponse) {
+
+                submitResponseReceived++;
+                // if the sending thread is finished, check if we're done
+                if (sendingDone.get()) {
+                    if (submitResponseReceived >= submitRequestSent) {
+                        this.allSubmitResponseReceivedSignal.countDown();
+                    }
+                }
+
             }
         }
     }

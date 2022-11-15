@@ -444,14 +444,14 @@ public class DefaultSmppSession implements SmppServerSession, SmppSessionChannel
     protected PduResponse sendRequestAndGetResponse(PduRequest requestPdu, long timeoutInMillis) throws RecoverablePduException, UnrecoverablePduException, SmppTimeoutException, SmppChannelException, InterruptedException {
         WindowFuture<Integer,PduRequest,PduResponse> future = sendRequestPdu(requestPdu, timeoutInMillis, true);
         boolean completedWithinTimeout = future.await();
-        
+
         if (!completedWithinTimeout) {
             // since this is a "synchronous" request and it timed out, we don't
             // want it eating up valuable window space - cancel it before returning exception
             future.cancel();
             throw new SmppTimeoutException("Unable to get response within [" + timeoutInMillis + " ms]");
         }
-        
+
         // 3 possible scenarios once completed: success, failure, or cancellation
         if (future.isSuccess()) {
             return future.getResponse();
@@ -469,6 +469,7 @@ public class DefaultSmppSession implements SmppServerSession, SmppSessionChannel
         }
     }
 
+    // Freddy Mendoza: remove for async operation outgoing window size, window size logic outside this library
     @SuppressWarnings("unchecked")
     @Override
     public WindowFuture<Integer,PduRequest,PduResponse> sendRequestPdu(PduRequest pdu, long timeoutMillis, boolean synchronous) throws RecoverablePduException, UnrecoverablePduException, SmppTimeoutException, SmppChannelException, InterruptedException {
@@ -481,19 +482,24 @@ public class DefaultSmppSession implements SmppServerSession, SmppSessionChannel
         ByteBuf buffer = transcoder.encode(pdu);
 
         WindowFuture<Integer,PduRequest,PduResponse> future = null;
-        try {
-            future = sendWindow.offer(pdu.getSequenceNumber(), pdu, timeoutMillis, configuration.getRequestExpiryTimeout(), synchronous);
-        } catch (DuplicateKeyException e) {
-            throw new UnrecoverablePduException(e.getMessage(), e);
-        } catch (OfferTimeoutException e) {
-            throw new SmppTimeoutException(e.getMessage(), e);
+
+        if(synchronous) {
+            try {
+                future = sendWindow.offer(pdu.getSequenceNumber(), pdu, timeoutMillis, configuration.getRequestExpiryTimeout(), synchronous);
+            } catch (DuplicateKeyException e) {
+                throw new UnrecoverablePduException(e.getMessage(), e);
+            } catch (OfferTimeoutException e) {
+                throw new SmppTimeoutException(e.getMessage(), e);
+            }
         }
         
         if(this.sessionHandler instanceof SmppSessionListener) {
             if(!((SmppSessionListener)this.sessionHandler).firePduDispatch(pdu)) {
                 logger.info("dispatched request PDU discarded: {}", pdu);
-                future.cancel(); //@todo probably throwing exception here is better solution?
-                return future;
+                if(future!=null)
+                    future.cancel(); //@todo probably throwing exception here is better solution?
+//              return future;
+                throw new SmppChannelException("dispatched request PDU discarded");
             }
         }
 
@@ -641,7 +647,9 @@ public class DefaultSmppSession implements SmppServerSession, SmppSessionChannel
                     this.countReceiveResponsePdu(responsePdu, 0, 0, 0);
                     
                     // original request either expired OR was completely unexpected
-                    this.sessionHandler.fireUnexpectedPduResponseReceived(responsePdu);
+//                    this.sessionHandler.fireUnexpectedPduResponseReceived(responsePdu);
+                    this.sessionHandler.fireAsyncPduResponseReceived(responsePdu);
+
                 }
             } catch (InterruptedException e) {
                 logger.warn("Interrupted while attempting to process response PDU and match it to a request via requesWindow: ", e);

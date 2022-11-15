@@ -87,6 +87,11 @@ public interface SmppSessionHandler extends PduTranscoderContext {
     public void fireUnexpectedPduResponseReceived(PduResponse pduResponse);
 
     /**
+     * When we used sendRequestPdu async: synchronous=false
+     * @param pduResponse
+     */
+    public void fireAsyncPduResponseReceived(PduResponse pduResponse);
+    /**
      * Called when an "unrecoverable" exception has been thrown downstream in
      * the session's pipeline.  The best example is a PDU that has an impossible
      * sequence number.  The recommended action is almost always to close the

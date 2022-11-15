@@ -43,6 +43,7 @@ public class PollableSmppSessionHandler implements SmppSessionHandler {
     private final BlockingQueue<PduRequest> receivedPduRequests;
     private final BlockingQueue<PduAsyncResponse> receivedExpectedPduResponses;
     private final BlockingQueue<PduResponse> receivedUnexpectedPduResponses;
+    private final BlockingQueue<PduResponse> receivedAsyncPduResponses;
     private final BlockingQueue<Throwable> throwables;
     private final AtomicInteger closedCount;
 
@@ -50,6 +51,7 @@ public class PollableSmppSessionHandler implements SmppSessionHandler {
         this.receivedPduRequests = new LinkedBlockingQueue<PduRequest>();
         this.receivedExpectedPduResponses = new LinkedBlockingQueue<PduAsyncResponse>();
         this.receivedUnexpectedPduResponses = new LinkedBlockingQueue<PduResponse>();
+        this.receivedAsyncPduResponses = new LinkedBlockingQueue<PduResponse>();
         this.throwables = new LinkedBlockingQueue<Throwable>();
         this.closedCount = new AtomicInteger();
     }
@@ -64,6 +66,10 @@ public class PollableSmppSessionHandler implements SmppSessionHandler {
 
     public BlockingQueue<PduResponse> getReceivedUnexpectedPduResponses() {
         return this.receivedUnexpectedPduResponses;
+    }
+
+    public BlockingQueue<PduResponse> getReceivedAsyncPduResponses() {
+        return this.receivedAsyncPduResponses;
     }
 
     public BlockingQueue<Throwable> getThrowables() {
@@ -98,6 +104,11 @@ public class PollableSmppSessionHandler implements SmppSessionHandler {
     @Override
     public void fireUnexpectedPduResponseReceived(PduResponse pduResponse) {
         this.receivedUnexpectedPduResponses.add(pduResponse);
+    }
+
+    @Override
+    public void fireAsyncPduResponseReceived(PduResponse pduResponse) {
+        this.receivedAsyncPduResponses.add(pduResponse);
     }
 
     @Override

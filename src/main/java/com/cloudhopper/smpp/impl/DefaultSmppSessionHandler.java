@@ -82,6 +82,12 @@ public class DefaultSmppSessionHandler implements SmppSessionListener {
     }
 
     @Override
+    public void fireAsyncPduResponseReceived(PduResponse pduResponse) {
+        logger.warn("Default handling async response PDU: {}", pduResponse);
+    }
+
+
+    @Override
     public void fireUnrecoverablePduException(UnrecoverablePduException e) {
         logger.warn("Default handling is to discard a unrecoverable exception:", e);
     }
