@@ -509,7 +509,8 @@ public class DefaultSmppSession implements SmppServerSession, SmppSessionChannel
             if (synchronous) {
                 logger.info("sync send PDU: {}", pdu);
             } else {
-                logger.info("async send PDU: {}", pdu);
+                if(!(pdu instanceof EnquireLink))
+                    logger.info("async send PDU: {}", pdu);
             }
         }
 
@@ -562,7 +563,11 @@ public class DefaultSmppSession implements SmppServerSession, SmppSessionChannel
         // we need to log the PDU after encoding since some things only happen
         // during the encoding process such as looking up the result message
         if (configuration.getLoggingOptions().isLogPduEnabled()) {
-            logger.info("send PDU: {}", pdu);
+
+            if(!(pdu instanceof EnquireLinkResp)){
+                logger.info("send PDU: {}", pdu);
+            }
+
         }
 
         // write the pdu out & wait timeout amount of time
@@ -584,7 +589,11 @@ public class DefaultSmppSession implements SmppServerSession, SmppSessionChannel
     @Override
     public void firePduReceived(Pdu pdu) {
         if (configuration.getLoggingOptions().isLogPduEnabled()) {
-            logger.info("received PDU: {}", pdu);
+
+            if (!(pdu instanceof EnquireLink) && !(pdu instanceof EnquireLinkResp)){
+                logger.info("received PDU: {}", pdu);
+            }
+
         }
 
         if(this.sessionHandler instanceof SmppSessionListener) {

@@ -58,9 +58,11 @@ public class DefaultPduTranscoder implements PduTranscoder {
         // if the pdu length hasn't been assigned yet, calculate it now
         // NOTE: it may be safest to recalculate it, but we won't since the SmppSession
         // should really be the only interface creating PDUs
-        if (!pdu.hasCommandLengthCalculated()) {
-            pdu.calculateAndSetCommandLength();
-        }
+//        if (!pdu.hasCommandLengthCalculated()) {
+//            pdu.calculateAndSetCommandLength();
+//        }
+
+        pdu.calculateAndSetCommandLength();
 
 	// @trustin:
 	// You don't need to call buffer.order(ByteOrder.BIG_ENDIAN).  It's always big endian in Netty 4.
