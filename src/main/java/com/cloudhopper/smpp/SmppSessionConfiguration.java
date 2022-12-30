@@ -55,6 +55,8 @@ public class SmppSessionConfiguration extends SmppConnectionConfiguration {
     private long writeTimeout;
     private boolean countersEnabled;
 
+    private String loggingId = "";
+
     public SmppSessionConfiguration() {
         this(SmppBindType.TRANSCEIVER, null, null, null);
     }
@@ -85,6 +87,14 @@ public class SmppSessionConfiguration extends SmppConnectionConfiguration {
 
     public String getName() {
         return this.name;
+    }
+
+    public String getLoggingId() {
+        return loggingId;
+    }
+
+    public void setLoggingId(String loggingId) {
+        this.loggingId = loggingId;
     }
 
     public void setWindowSize(int value) {
