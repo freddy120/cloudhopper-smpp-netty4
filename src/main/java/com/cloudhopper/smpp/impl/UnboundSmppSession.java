@@ -115,6 +115,8 @@ public class UnboundSmppSession implements SmppSessionChannelListener {
             }
         } else if (pdu instanceof EnquireLink) {
             EnquireLinkResp response = ((EnquireLink) pdu).createResponse();
+            //ERROR in unbound session
+            response.setCommandStatus(SmppConstants.STATUS_INVBNDSTS);
             logger.info("Responding to enquire_link with response [{}]", response);
             this.sendResponsePdu(response);
             return;
