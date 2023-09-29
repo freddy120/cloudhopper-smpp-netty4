@@ -54,9 +54,9 @@ public class ClientSmppSessionHandler extends DefaultSmppSessionHandler {
 		PduResponse response = null;
 		try {
 			if (request instanceof DeliverSm) {
-				logger.info("request {}", request);
+				logger.debug("request {}", request);
 				response = smppClientMessageService.received(client, (DeliverSm) request);
-				logger.info("response {}", response);
+				logger.debug("response {}", response);
 			} else {
 				response = request.createResponse();
 			}

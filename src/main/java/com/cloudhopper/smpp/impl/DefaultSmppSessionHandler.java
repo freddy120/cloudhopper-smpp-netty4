@@ -62,7 +62,7 @@ public class DefaultSmppSessionHandler implements SmppSessionListener {
 
     @Override
     public void fireChannelUnexpectedlyClosed() {
-        logger.info("Default handling is to discard an unexpected channel closed");
+        logger.debug("Default handling is to discard an unexpected channel closed");
     }
 
     @Override

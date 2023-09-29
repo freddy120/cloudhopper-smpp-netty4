@@ -67,7 +67,7 @@ public class UnboundSmppSession implements SmppSessionChannelListener {
     @Override
     public void firePduReceived(Pdu pdu) {
         // always log the PDU received on an unbound session
-        logger.info("received PDU: {}", pdu);
+        logger.debug("received PDU: {}", pdu);
 
         // only bind and enquire_link requests are permitted
         if (pdu instanceof BaseBind) {
@@ -117,7 +117,7 @@ public class UnboundSmppSession implements SmppSessionChannelListener {
             EnquireLinkResp response = ((EnquireLink) pdu).createResponse();
             //ERROR in unbound session
             response.setCommandStatus(SmppConstants.STATUS_INVBNDSTS);
-            logger.info("Responding to enquire_link with response [{}]", response);
+            logger.debug("Responding to enquire_link with response [{}]", response);
             this.sendResponsePdu(response);
             return;
         } else {
@@ -193,7 +193,7 @@ public class UnboundSmppSession implements SmppSessionChannelListener {
             ByteBuf buffer = server.getTranscoder().encode(pdu);
 
             // always log the PDU
-            logger.info("send PDU: {}", pdu);
+            logger.debug("send PDU: {}", pdu);
 
             // write the pdu out & wait till its written
             ChannelFuture channelFuture = this.channel.writeAndFlush(buffer).await();

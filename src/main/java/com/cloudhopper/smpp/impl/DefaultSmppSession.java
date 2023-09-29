@@ -507,10 +507,10 @@ public class DefaultSmppSession implements SmppServerSession, SmppSessionChannel
         // during the encoding process such as looking up the result message
         if (configuration.getLoggingOptions().isLogPduEnabled()) {
             if (synchronous) {
-                logger.info("[{}] sync send PDU: {}", configuration.getLoggingId(), pdu);
+                logger.debug("[{}] sync send PDU: {}", configuration.getLoggingId(), pdu);
             } else {
                 if(!(pdu instanceof EnquireLink))
-                    logger.info("[{}] async send PDU: {}", configuration.getLoggingId(), pdu);
+                    logger.debug("[{}] async send PDU: {}", configuration.getLoggingId(), pdu);
             }
         }
 
@@ -565,7 +565,7 @@ public class DefaultSmppSession implements SmppServerSession, SmppSessionChannel
         if (configuration.getLoggingOptions().isLogPduEnabled()) {
 
             if(!(pdu instanceof EnquireLinkResp)){
-                logger.info("[{}] send PDU: {}", configuration.getLoggingId(), pdu);
+                logger.debug("[{}] send PDU: {}", configuration.getLoggingId(), pdu);
             }
 
         }
@@ -591,14 +591,14 @@ public class DefaultSmppSession implements SmppServerSession, SmppSessionChannel
         if (configuration.getLoggingOptions().isLogPduEnabled()) {
 
             if (!(pdu instanceof EnquireLink) && !(pdu instanceof EnquireLinkResp)){
-                logger.info("[{}] received PDU: {}", configuration.getLoggingId(), pdu);
+                logger.debug("[{}] received PDU: {}", configuration.getLoggingId(), pdu);
             }
 
         }
 
         if(this.sessionHandler instanceof SmppSessionListener) {
             if(!((SmppSessionListener)this.sessionHandler).firePduReceived(pdu)){
-                logger.info("[{}] recieved PDU discarded: {}", configuration.getLoggingId(), pdu);
+                logger.debug("[{}] recieved PDU discarded: {}", configuration.getLoggingId(), pdu);
                 return;
             }
         }
