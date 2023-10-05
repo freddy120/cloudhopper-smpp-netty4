@@ -331,15 +331,15 @@ public class DefaultSmppSessionTest {
                 EnquireLinkResp el3Resp = el3.createResponse();
 
                 // this request should be permitted (with window size = 2)
-                WindowFuture future0 = session.sendRequestPdu(el0, 3000, true);
-                WindowFuture future1 = session.sendRequestPdu(el1, 3000, true);
-                WindowFuture future2 = session.sendRequestPdu(el2, 3000, true);
+                WindowFuture future0 = session.sendRequestPdu(el0, 3000, true, null);
+                WindowFuture future1 = session.sendRequestPdu(el1, 3000, true, null);
+                WindowFuture future2 = session.sendRequestPdu(el2, 3000, true, null);
 
                 Assert.assertEquals(3, session.getSendWindow().getSize());
 
                 try {
                     // window size of 3 is now filled up, this one should timeout
-                    session.sendRequestPdu(el3, 100, true);
+                    session.sendRequestPdu(el3, 100, true, null);
                     Assert.fail();
                 } catch (SmppTimeoutException e) {
                     Assert.assertNotNull(e.getCause());
@@ -358,7 +358,7 @@ public class DefaultSmppSessionTest {
                 Assert.assertEquals(2, session.getSendWindow().getSize());
 
                 // this request should now succeed
-                WindowFuture future3 = session.sendRequestPdu(el3, 3000, true);
+                WindowFuture future3 = session.sendRequestPdu(el3, 3000, true, null);
 
                 // send back responses for everything that's missing
                 simulator0.sendPdu(el2Resp);
@@ -480,7 +480,7 @@ public class DefaultSmppSessionTest {
             EnquireLinkResp el0Resp = el0.createResponse();
 
             // send asynchronously (no response will be received yet)
-            session.sendRequestPdu(el0, 2000, false);
+            session.sendRequestPdu(el0, 2000, false, null);
 
             // send the response back -- this should be routed as n ExpectedPduResponse....
             simulator0.sendPdu(el0Resp);
@@ -838,7 +838,7 @@ public class DefaultSmppSessionTest {
             simulator0.addPduToWriteOnNextPduReceived(ubResp);
 
             // send this PDU asynchronously
-            session.sendRequestPdu(el0, 200, false);
+            session.sendRequestPdu(el0, 200, false, null);
 
             // wait for an expected pdu response
 //            PduAsyncResponse asyncpdu0 = sessionHandler.getReceivedExpectedPduResponses().poll(1000, TimeUnit.MILLISECONDS);
@@ -892,7 +892,7 @@ public class DefaultSmppSessionTest {
             EnquireLinkResp el0Resp = el0.createResponse();
 
             // send a request and wait for a response that never shows up
-            WindowFuture future = session.sendRequestPdu(el0, 50, true);
+            WindowFuture future = session.sendRequestPdu(el0, 50, true, null);
             Assert.assertFalse(future.await());
             // a call to cancel() is usually done in sendRequestPduAndGetResponse
             // but for this test we'll manually need to call it here
@@ -1005,7 +1005,7 @@ public class DefaultSmppSessionTest {
         simulator0.setPduProcessor(null);
 
         // load up the "window" with a request
-        session.sendRequestPdu(new EnquireLink(), 5000, false);
+        session.sendRequestPdu(new EnquireLink(), 5000, false, null);
         
 //        Assert.assertEquals(1, session.getSendWindow().getSize());
         Assert.assertEquals(0, session.getSendWindow().getSize());

@@ -37,6 +37,7 @@ import com.cloudhopper.smpp.util.SmppUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -294,7 +295,7 @@ public class DefaultSmppSession implements SmppServerSession, SmppSessionChannel
         this.sessionHandler = sessionHandler;
         // send the prepared bind response
         try {
-            this.sendResponsePdu(this.preparedBindResponse);
+            this.sendResponsePdu(this.preparedBindResponse, null);
         } catch (Exception e) {
             logger.error("{}", e);
         }
@@ -442,7 +443,7 @@ public class DefaultSmppSession implements SmppServerSession, SmppSessionChannel
      * expecting, it needs to verify it afterwards.
      */
     protected PduResponse sendRequestAndGetResponse(PduRequest requestPdu, long timeoutInMillis) throws RecoverablePduException, UnrecoverablePduException, SmppTimeoutException, SmppChannelException, InterruptedException {
-        WindowFuture<Integer,PduRequest,PduResponse> future = sendRequestPdu(requestPdu, timeoutInMillis, true);
+        WindowFuture<Integer,PduRequest,PduResponse> future = sendRequestPdu(requestPdu, timeoutInMillis, true, null);
         boolean completedWithinTimeout = future.await();
 
         if (!completedWithinTimeout) {
@@ -472,7 +473,7 @@ public class DefaultSmppSession implements SmppServerSession, SmppSessionChannel
     // Freddy Mendoza: remove for async operation outgoing window size, window size logic outside this library
     @SuppressWarnings("unchecked")
     @Override
-    public WindowFuture<Integer,PduRequest,PduResponse> sendRequestPdu(PduRequest pdu, long timeoutMillis, boolean synchronous) throws RecoverablePduException, UnrecoverablePduException, SmppTimeoutException, SmppChannelException, InterruptedException {
+    public WindowFuture<Integer,PduRequest,PduResponse> sendRequestPdu(PduRequest pdu, long timeoutMillis, boolean synchronous, ChannelFutureListener channelFutureListener) throws RecoverablePduException, UnrecoverablePduException, SmppTimeoutException, SmppChannelException, InterruptedException {
         // assign the next PDU sequence # if its not yet assigned
         if (!pdu.hasSequenceNumberAssigned()) {
             pdu.setSequenceNumber(this.sequenceNumber.next());
@@ -516,17 +517,24 @@ public class DefaultSmppSession implements SmppServerSession, SmppSessionChannel
 
         // write the pdu out & wait timeout amount of time
         ChannelFuture channelFuture = this.channel.writeAndFlush(buffer);
-        if (configuration.getWriteTimeout() > 0){
-            channelFuture.await(configuration.getWriteTimeout());
-        } else {
-            channelFuture.await();
-        }
 
-        // check if the write was a success
-        if (!channelFuture.isSuccess()) {
-            // the write failed, make sure to throw an exception
-	    if (channelFuture.cause() != null) throw new SmppChannelException(channelFuture.cause().getMessage(), channelFuture.cause());
-	    else throw new SmppChannelException("ChannelFuture failed without cause.");
+        if (channelFutureListener != null) {
+            channelFuture.addListener(channelFutureListener);
+        } else {
+            if (configuration.getWriteTimeout() > 0) {
+                channelFuture.await(configuration.getWriteTimeout());
+            } else {
+                channelFuture.await();
+            }
+
+            // check if the write was a success
+            if (!channelFuture.isSuccess()) {
+                // the write failed, make sure to throw an exception
+                if (channelFuture.cause() != null)
+                    throw new SmppChannelException(channelFuture.cause().getMessage(), channelFuture.cause());
+                else throw new SmppChannelException("ChannelFuture failed without cause.");
+            }
+
         }
         
         this.countSendRequestPdu(pdu);
@@ -544,7 +552,7 @@ public class DefaultSmppSession implements SmppServerSession, SmppSessionChannel
      * @throws InterruptedException
      */
     @Override
-    public void sendResponsePdu(PduResponse pdu) throws RecoverablePduException, UnrecoverablePduException, SmppChannelException, InterruptedException {
+    public void sendResponsePdu(PduResponse pdu, ChannelFutureListener channelFutureListener) throws RecoverablePduException, UnrecoverablePduException, SmppChannelException, InterruptedException {
         // assign the next PDU sequence # if its not yet assigned
         if (!pdu.hasSequenceNumberAssigned()) {
             pdu.setSequenceNumber(this.sequenceNumber.next());
@@ -572,16 +580,21 @@ public class DefaultSmppSession implements SmppServerSession, SmppSessionChannel
 
         // write the pdu out & wait timeout amount of time
         ChannelFuture channelFuture = this.channel.writeAndFlush(buffer);
-        if(configuration.getWriteTimeout() > 0){
-            channelFuture.await(configuration.getWriteTimeout());
-        } else {
-            channelFuture.await();
-        }
 
-        // check if the write was a success
-        if (!channelFuture.isSuccess()) {
-            // the write failed, make sure to throw an exception
-            throw new SmppChannelException(channelFuture.cause().getMessage(), channelFuture.cause());
+        if(channelFutureListener!=null){
+            channelFuture.addListener(channelFutureListener);
+        }else {
+            if (configuration.getWriteTimeout() > 0) {
+                channelFuture.await(configuration.getWriteTimeout());
+            } else {
+                channelFuture.await();
+            }
+
+            // check if the write was a success
+            if (!channelFuture.isSuccess()) {
+                // the write failed, make sure to throw an exception
+                throw new SmppChannelException(channelFuture.cause().getMessage(), channelFuture.cause());
+            }
         }
     }
 
@@ -618,7 +631,7 @@ public class DefaultSmppSession implements SmppServerSession, SmppSessionChannel
                     long responseTime = System.currentTimeMillis() - startTime;
                     this.countSendResponsePdu(responsePdu, responseTime, responseTime);
                     
-                    this.sendResponsePdu(responsePdu);
+                    this.sendResponsePdu(responsePdu, null);
                 } catch (Exception e) {
                     logger.error("Unable to cleanly return response PDU: {}", e);
                 }

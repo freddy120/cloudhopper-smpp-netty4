@@ -231,7 +231,7 @@ public class PerformanceClientMain {
                     // asynchronous send
                     this.submitRequestSent++;
                     sendingDone.set(true);
-                    session.sendRequestPdu(submit, 30000, false);
+                    session.sendRequestPdu(submit, 30000, false, null);
                 }
                 
                 // all threads have sent all submit, we do need to wait for

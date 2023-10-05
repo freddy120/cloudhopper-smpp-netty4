@@ -183,7 +183,7 @@ public class ServerEchoMain {
 
         private void sendRequestPdu(SmppSession session, DeliverSm deliver) {
             try {
-                WindowFuture<Integer,PduRequest,PduResponse> future = session.sendRequestPdu(deliver, 10000, true);
+                WindowFuture<Integer,PduRequest,PduResponse> future = session.sendRequestPdu(deliver, 10000, true, null);
                 if (!future.await()) {
                     logger.error("Failed to receive deliver_sm_resp within specified time");
                 } else if (future.isSuccess()) {

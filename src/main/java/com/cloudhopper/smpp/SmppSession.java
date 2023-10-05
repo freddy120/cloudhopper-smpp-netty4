@@ -32,6 +32,7 @@ import com.cloudhopper.smpp.pdu.SubmitSm;
 import com.cloudhopper.smpp.pdu.SubmitSmResp;
 import com.cloudhopper.smpp.type.RecoverablePduException;
 import com.cloudhopper.smpp.type.UnrecoverablePduException;
+import io.netty.channel.ChannelFutureListener;
 
 /**
  * Defines a common interface for either a Client (ESME) or Server (SMSC) SMPP
@@ -318,7 +319,7 @@ public interface SmppSession {
      * @throws InterruptedException The calling thread was interrupted while waiting
      *      to acquire a lock or write/read the bytes from the socket/channel.
      */
-    public WindowFuture<Integer,PduRequest,PduResponse> sendRequestPdu(PduRequest request, long timeoutMillis, boolean synchronous) throws RecoverablePduException, UnrecoverablePduException, SmppTimeoutException, SmppChannelException, InterruptedException;
+    public WindowFuture<Integer,PduRequest,PduResponse> sendRequestPdu(PduRequest request, long timeoutMillis, boolean synchronous, ChannelFutureListener channelFutureListener) throws RecoverablePduException, UnrecoverablePduException, SmppTimeoutException, SmppChannelException, InterruptedException;
 
     /**
      * Main underlying method for sending a response PDU to the remote endpoint.
@@ -336,5 +337,5 @@ public interface SmppSession {
      * @throws InterruptedException The calling thread was interrupted while waiting
      *      to acquire a lock or write/read the bytes from the socket/channel.
      */
-    public void sendResponsePdu(PduResponse response) throws RecoverablePduException, UnrecoverablePduException, SmppChannelException, InterruptedException;
+    public void sendResponsePdu(PduResponse response, ChannelFutureListener channelFutureListener) throws RecoverablePduException, UnrecoverablePduException, SmppChannelException, InterruptedException;
 }

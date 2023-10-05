@@ -123,7 +123,7 @@ public class SslClientMain {
 
             // demo of an "asynchronous" enquireLink call - send it, get a future,
             // and then optionally choose to pick when we wait for it
-            WindowFuture<Integer,PduRequest,PduResponse> future0 = session0.sendRequestPdu(new EnquireLink(), 10000, true);
+            WindowFuture<Integer,PduRequest,PduResponse> future0 = session0.sendRequestPdu(new EnquireLink(), 10000, true, null);
             if (!future0.await()) {
                 logger.error("Failed to receive enquire_link_resp within specified time");
             } else if (future0.isSuccess()) {

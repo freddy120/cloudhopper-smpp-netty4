@@ -122,7 +122,7 @@ public class QueryCancelMain {
 
             // demo of an "asynchronous" enquireLink call - send it, get a future,
             // and then optionally choose to pick when we wait for it
-            WindowFuture<Integer,PduRequest,PduResponse> future0 = session0.sendRequestPdu(new EnquireLink(), 10000, true);
+            WindowFuture<Integer,PduRequest,PduResponse> future0 = session0.sendRequestPdu(new EnquireLink(), 10000, true, null);
             if (!future0.await()) {
                 logger.error("Failed to receive enquire_link_resp within specified time");
             } else if (future0.isSuccess()) {
@@ -158,7 +158,7 @@ public class QueryCancelMain {
 	    query0.setMessageId(submitResp.getMessageId());
             query0.setSourceAddress(new Address((byte)0x03, (byte)0x00, "40404"));
 
-	    WindowFuture<Integer,PduRequest,PduResponse> future1 = session0.sendRequestPdu(query0, 10000, true);
+	    WindowFuture<Integer,PduRequest,PduResponse> future1 = session0.sendRequestPdu(query0, 10000, true, null);
 	    while (!future1.isDone()) {}
 	    QuerySmResp queryResp = (QuerySmResp)future1.getResponse();
 
@@ -169,7 +169,7 @@ public class QueryCancelMain {
 	    cancel0.setMessageId(submitResp.getMessageId());
             cancel0.setSourceAddress(new Address((byte)0x03, (byte)0x00, "40404"));
             cancel0.setDestAddress(new Address((byte)0x01, (byte)0x01, "44555519205"));
-	    WindowFuture<Integer,PduRequest,PduResponse> future2 = session0.sendRequestPdu(cancel0, 10000, true);
+	    WindowFuture<Integer,PduRequest,PduResponse> future2 = session0.sendRequestPdu(cancel0, 10000, true, null);
 	    while (!future2.isDone()) {}
 	    CancelSmResp cancelResp = (CancelSmResp)future2.getResponse();
             

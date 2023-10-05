@@ -525,7 +525,7 @@ public class DefaultSmppServerTest {
                 DefaultSmppSession session0 = client0.doOpen(sessionConfig0, new DefaultSmppSessionHandler());
                 // try to bind and execute a bind request and wait for a bind response
                 BaseBind bindRequest = client0.createBindRequest(sessionConfig0);
-                session0.sendRequestPdu(bindRequest, 2000, false);
+                session0.sendRequestPdu(bindRequest, 2000, false, null);
             }
 
             // now try to bind normally -- since all previous workers are "starved"
