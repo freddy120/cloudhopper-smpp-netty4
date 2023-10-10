@@ -20,10 +20,12 @@ package com.cloudhopper.smpp;
  * #L%
  */
 
+import com.cloudhopper.smpp.impl.DefaultSmppSession;
 import com.cloudhopper.smpp.type.SmppBindException;
 import com.cloudhopper.smpp.type.SmppChannelException;
 import com.cloudhopper.smpp.type.SmppTimeoutException;
 import com.cloudhopper.smpp.type.UnrecoverablePduException;
+import io.netty.channel.ChannelFutureListener;
 
 /**
  * Interface representing an SmppClient.
@@ -55,6 +57,12 @@ public interface SmppClient {
      */
     public SmppSession bind(SmppSessionConfiguration config, SmppSessionHandler sessionHandler) throws SmppTimeoutException, SmppChannelException, SmppBindException, UnrecoverablePduException, InterruptedException;
 
+    /**
+     * Async bind, returns immediately.  The returned future will contain the Channel
+     */
+
+    public void connectTcp(SmppSessionConfiguration config, SmppSessionHandler sessionHandler);
+    public void bindAsync(DefaultSmppSession session, SmppSessionConfiguration config) throws SmppTimeoutException, SmppChannelException, SmppBindException, UnrecoverablePduException, InterruptedException;
     /**
      * Destroy a client by ensuring that all session sockets are closed and all
      * resources are cleaned up.  This method should the <b>last</b> method called

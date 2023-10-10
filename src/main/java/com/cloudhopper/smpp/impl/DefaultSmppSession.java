@@ -360,6 +360,79 @@ public class DefaultSmppSession implements SmppServerSession, SmppSessionChannel
         }
     }
 
+    public void bindAsync(BaseBind request, long timeoutInMillis) throws RecoverablePduException, UnrecoverablePduException, SmppTimeoutException, SmppChannelException, InterruptedException {
+        assertValidRequest(request);
+
+
+        this.state.set(STATE_BINDING);
+
+        sendRequestPdu(request, timeoutInMillis, false, new ChannelFutureListener() {
+            @Override
+            public void operationComplete(ChannelFuture future) throws Exception {
+                if (future.isSuccess()) {
+                    logger.debug("send Bind Request success");
+                } else {
+                    logger.debug("send Bind Request fail ", future.cause());
+                    sessionHandler.bindFailure(future.cause());
+                }
+            }
+        });
+
+
+    }
+
+    public void processBindResponseAsync(PduResponse pduResponse) throws InterruptedException, SmppBindException {
+        boolean bound = false;
+
+        try {
+            BaseBindResp bindResponse = (BaseBindResp) pduResponse;
+
+            // check if the bind succeeded
+            if (bindResponse == null || bindResponse.getCommandStatus() != SmppConstants.STATUS_OK) {
+                // bind failed for a specific reason
+                sessionHandler.bindFailure(new SmppBindException(bindResponse));
+                throw new SmppBindException(bindResponse);
+            }
+
+            // if we make it all the way here, we're good and bound
+            bound = true;
+
+            //
+            // negotiate version in use based on response back from server
+            //
+            Tlv scInterfaceVersion = bindResponse.getOptionalParameter(SmppConstants.TAG_SC_INTERFACE_VERSION);
+
+            if (scInterfaceVersion == null) {
+                // this means version 3.3 is in use
+                this.interfaceVersion = SmppConstants.VERSION_3_3;
+            } else {
+                try {
+                    byte tempInterfaceVersion = scInterfaceVersion.getValueAsByte();
+                    if (tempInterfaceVersion >= SmppConstants.VERSION_3_4) {
+                        this.interfaceVersion = SmppConstants.VERSION_3_4;
+                    } else {
+                        this.interfaceVersion = SmppConstants.VERSION_3_3;
+                    }
+                } catch (TlvConvertException e) {
+                    logger.warn("Unable to convert sc_interface_version to a byte value: {}", e.getMessage());
+                    this.interfaceVersion = SmppConstants.VERSION_3_3;
+                }
+            }
+
+        } finally {
+            if (bound) {
+                // this session is now successfully bound & ready for processing
+                setBound();
+                sessionHandler.bindSuccess((BaseBindResp) pduResponse);
+            } else {
+                // the bind failed, we need to clean up resources
+                try { this.close(); } catch (Exception e) { }
+            }
+        }
+    }
+
+
+    //TODO: no usar unbind, blocking
     @Override
     public void unbind(long timeoutInMillis) {
         // is this channel still open?
@@ -393,11 +466,23 @@ public class DefaultSmppSession implements SmppServerSession, SmppSessionChannel
             // temporarily set to "unbinding" for now
             this.state.set(STATE_UNBINDING);
             // make sure the channel is always closed
-            if (channel.close().awaitUninterruptibly(timeoutInMillis)) {
-                logger.info("Successfully closed");
-            } else {
-                logger.warn("Unable to cleanly close channel");
-            }
+
+            channel.close().addListener(new ChannelFutureListener() {
+                @Override
+                public void operationComplete(ChannelFuture channelFuture) throws Exception {
+                    if(channelFuture.isSuccess()) {
+                        logger.debug("Successfully closed");
+                    }else{
+                        logger.warn("Unable to cleanly close channel");
+                    }
+                }
+            });
+
+//            if (channel.close().awaitUninterruptibly(timeoutInMillis)) {
+//                logger.info("Successfully closed");
+//            } else {
+//                logger.warn("Unable to cleanly close channel");
+//            }
         }
         this.state.set(STATE_CLOSED);
     }
@@ -519,7 +604,14 @@ public class DefaultSmppSession implements SmppServerSession, SmppSessionChannel
         ChannelFuture channelFuture = this.channel.writeAndFlush(buffer);
 
         if (channelFutureListener != null) {
-            channelFuture.addListener(channelFutureListener);
+            if(channelFuture.isDone()){
+                try {
+                    channelFutureListener.operationComplete(channelFuture);
+                } catch (Exception ignore) {
+                }
+            }else{
+                channelFuture.addListener(channelFutureListener);
+            }
         } else {
             if (configuration.getWriteTimeout() > 0) {
                 channelFuture.await(configuration.getWriteTimeout());
@@ -582,7 +674,14 @@ public class DefaultSmppSession implements SmppServerSession, SmppSessionChannel
         ChannelFuture channelFuture = this.channel.writeAndFlush(buffer);
 
         if(channelFutureListener!=null){
-            channelFuture.addListener(channelFutureListener);
+            if(channelFuture.isDone()){
+                try {
+                    channelFutureListener.operationComplete(channelFuture);
+                } catch (Exception ignore) {
+                }
+            }else {
+                channelFuture.addListener(channelFutureListener);
+            }
         }else {
             if (configuration.getWriteTimeout() > 0) {
                 channelFuture.await(configuration.getWriteTimeout());
@@ -666,11 +765,21 @@ public class DefaultSmppSession implements SmppServerSession, SmppSessionChannel
                         this.sessionHandler.fireUnexpectedPduResponseReceived(responsePdu);
                     }
                 } else {
-                    this.countReceiveResponsePdu(responsePdu, 0, 0, 0);
-                    
-                    // original request either expired OR was completely unexpected
+                    if(responsePdu instanceof BaseBindResp){
+                        //perform bindResp validation.
+                        try {
+                            logger.debug("BindResp received, validating...");
+                            processBindResponseAsync(responsePdu);
+                        } catch (Exception e) {
+                            //TODO do nothing here?
+                        }
+                    }else {
+                        this.countReceiveResponsePdu(responsePdu, 0, 0, 0);
+
+                        // original request either expired OR was completely unexpected
 //                    this.sessionHandler.fireUnexpectedPduResponseReceived(responsePdu);
-                    this.sessionHandler.fireAsyncPduResponseReceived(responsePdu);
+                        this.sessionHandler.fireAsyncPduResponseReceived(responsePdu);
+                    }
 
                 }
             } catch (InterruptedException e) {

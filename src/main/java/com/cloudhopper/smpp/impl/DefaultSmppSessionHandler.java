@@ -23,6 +23,7 @@ package com.cloudhopper.smpp.impl;
 import com.cloudhopper.smpp.PduAsyncResponse;
 import com.cloudhopper.smpp.SmppSessionHandler;
 import com.cloudhopper.smpp.SmppSessionListener;
+import com.cloudhopper.smpp.pdu.BaseBindResp;
 import com.cloudhopper.smpp.pdu.Pdu;
 import com.cloudhopper.smpp.pdu.PduRequest;
 import com.cloudhopper.smpp.pdu.PduResponse;
@@ -123,5 +124,24 @@ public class DefaultSmppSessionHandler implements SmppSessionListener {
         // default handling is to accept pdu for processing up chain
         return true;
     }
-    
+
+    @Override
+    public void connectionSuccess(DefaultSmppSession session) {
+
+    }
+
+    @Override
+    public void connectionFailed(Throwable t) {
+
+    }
+
+    @Override
+    public void bindSuccess(BaseBindResp baseBindResp) {
+
+    }
+
+    @Override
+    public void bindFailure(Throwable t) {
+
+    }
 }

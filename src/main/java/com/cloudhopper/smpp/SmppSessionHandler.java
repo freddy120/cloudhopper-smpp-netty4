@@ -20,6 +20,8 @@ package com.cloudhopper.smpp;
  * #L%
  */
 
+import com.cloudhopper.smpp.impl.DefaultSmppSession;
+import com.cloudhopper.smpp.pdu.BaseBindResp;
 import com.cloudhopper.smpp.pdu.PduRequest;
 import com.cloudhopper.smpp.pdu.PduResponse;
 import com.cloudhopper.smpp.transcoder.PduTranscoderContext;
@@ -118,5 +120,16 @@ public interface SmppSessionHandler extends PduTranscoderContext {
      * @param e The exception
      */
     public void fireUnknownThrowable(Throwable t);
+
+
+
+    // connection and Bind Async.
+    public void connectionSuccess(DefaultSmppSession session);
+
+    public void connectionFailed(Throwable t);
+
+    public void bindSuccess(BaseBindResp baseBindResp);
+
+    public void bindFailure(Throwable t);
 
 }

@@ -22,6 +22,7 @@ package com.cloudhopper.smpp.impl;
 
 import com.cloudhopper.smpp.PduAsyncResponse;
 import com.cloudhopper.smpp.SmppSessionHandler;
+import com.cloudhopper.smpp.pdu.BaseBindResp;
 import com.cloudhopper.smpp.pdu.PduRequest;
 import com.cloudhopper.smpp.pdu.PduResponse;
 import com.cloudhopper.smpp.type.RecoverablePduException;
@@ -135,5 +136,25 @@ public class PollableSmppSessionHandler implements SmppSessionHandler {
     public void firePduRequestExpired(PduRequest pduRequest) {
         // do nothing
     }
-    
+
+
+    @Override
+    public void connectionSuccess(DefaultSmppSession session) {
+
+    }
+
+    @Override
+    public void connectionFailed(Throwable t) {
+
+    }
+
+    @Override
+    public void bindSuccess(BaseBindResp baseBindResp) {
+
+    }
+
+    @Override
+    public void bindFailure(Throwable t) {
+
+    }
 }

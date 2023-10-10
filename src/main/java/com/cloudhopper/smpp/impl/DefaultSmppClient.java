@@ -32,13 +32,9 @@ import com.cloudhopper.smpp.type.SmppChannelConnectException;
 import com.cloudhopper.smpp.type.SmppChannelConnectTimeoutException;
 import com.cloudhopper.smpp.type.UnrecoverablePduException;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.ConnectTimeoutException;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.*;
 import io.netty.channel.group.ChannelGroup;
+import io.netty.channel.group.ChannelGroupFutureListener;
 import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.oio.OioEventLoopGroup;
@@ -145,16 +141,30 @@ public class DefaultSmppClient implements SmppClient {
     @Override
     public void destroy() {
         // close all channels still open within this session "bootstrap"
-        this.channels.close().awaitUninterruptibly();
+//        this.channels.close().awaitUninterruptibly();
         // clean up all external resources
         // this.clientBootstrap.releaseExternalResources();
 
+        this.channels.close();
+
+
         try {
             if (clientChannel != null) {
-                clientChannel.closeFuture().sync();
+//                clientChannel.closeFuture().sync();
+
+                clientChannel.closeFuture().addListener(new ChannelFutureListener() {
+                    @Override
+                    public void operationComplete(ChannelFuture channelFuture) throws Exception {
+                        if(channelFuture.isSuccess()) {
+                            logger.debug("clientChannel.closeFuture() Successfully closed");
+                        }else{
+                            logger.warn("clientChannel.closeFuture() Unable to cleanly close channel");
+                        }
+                    }
+                });
             }
             this.clientBootstrap = null;
-        } catch (InterruptedException e) {
+        } catch (Exception e) {
             logger.warn("Thread interrupted closing client channel.", e);
         } finally {
             //TODO: if DefaultSmppClient(workerGroup) it's may be bad idea!
@@ -163,8 +173,10 @@ public class DefaultSmppClient implements SmppClient {
 
             try {
                 // Wait until all threads are terminated.
-                this.workerGroup.terminationFuture().sync();
-            } catch (InterruptedException e) {
+//                this.workerGroup.terminationFuture().sync();
+
+                this.workerGroup.terminationFuture();//No blocking. It's async.
+            } catch (Exception e) {
                 logger.warn("Thread interrupted closing executors.", e);
             }
         }
@@ -214,6 +226,16 @@ public class DefaultSmppClient implements SmppClient {
         return session;
     }
 
+    @Override
+    public void connectTcp(SmppSessionConfiguration config, SmppSessionHandler sessionHandler) {
+        doOpenAsync(config, sessionHandler);
+    }
+
+    @Override
+    public void bindAsync(DefaultSmppSession session, SmppSessionConfiguration config) throws SmppTimeoutException, SmppChannelException, SmppBindException, UnrecoverablePduException, InterruptedException {
+        doBindAsync(session, config);
+    }
+
     protected void doBind(DefaultSmppSession session, SmppSessionConfiguration config, SmppSessionHandler sessionHandler) throws SmppTimeoutException, SmppChannelException, SmppBindException, UnrecoverablePduException, InterruptedException {
         // create the bind request we'll use (may throw an exception)
         BaseBind bindRequest = createBindRequest(config);
@@ -234,6 +256,25 @@ public class DefaultSmppClient implements SmppClient {
         this.clientChannel = createConnectedChannel(config.getHost(), config.getPort(), config.getConnectTimeout());
         // tie this new opened channel with a new session
         return createSession(clientChannel, config, sessionHandler);
+    }
+
+    protected void doOpenAsync(SmppSessionConfiguration config, SmppSessionHandler sessionHandler) {
+        // create and connect a channel to the remote host
+        createConnectedChannelAsync(config.getHost(), config.getPort(), config.getConnectTimeout(), config, sessionHandler);
+    }
+
+    protected void doBindAsync(DefaultSmppSession session, SmppSessionConfiguration config) throws SmppTimeoutException, SmppChannelException, SmppBindException, UnrecoverablePduException, InterruptedException {
+        // create the bind request we'll use (may throw an exception)
+        BaseBind bindRequest = createBindRequest(config);
+
+        try {
+            // attempt to bind to the SMSC
+            // session implementation handles error checking, version negotiation, and can be discarded
+            session.bindAsync(bindRequest, config.getBindTimeout());
+        } catch (RecoverablePduException e) {
+            // if a bind fails, there really is no recovery...
+            throw new UnrecoverablePduException(e.getMessage(), e);
+        }
     }
 
     protected DefaultSmppSession createSession(Channel channel, SmppSessionConfiguration config, SmppSessionHandler sessionHandler) throws SmppTimeoutException, SmppChannelException, InterruptedException {
@@ -328,6 +369,162 @@ public class DefaultSmppClient implements SmppClient {
         logger.debug("Client connected to {}", socketAddr);
         // if we get here, then we were able to connect and get a channel
         return connectFuture.channel();
+    }
+
+    protected void createConnectedChannelAsync(final String host, final int port, final long connectTimeoutMillis, final SmppSessionConfiguration config, final SmppSessionHandler sessionHandler) {
+        // a socket address used to "bind" to the remote system
+        final InetSocketAddress socketAddr = new InetSocketAddress(host, port);
+
+        // set the timeout
+        this.clientBootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, (int)connectTimeoutMillis);
+
+        // attempt to connect to the remote system
+        ChannelFuture connectFuture = this.clientBootstrap.connect(socketAddr);
+
+        // wait until the connection is made successfully
+        // boolean timeout = !connectFuture.await(connectTimeoutMillis);
+        // BAD: using .await(timeout)
+        //      see http://netty.io/3.9/api/org/jboss/netty/channel/ChannelFuture.html
+        logger.debug("Waiting for client connection to {}", socketAddr);
+//        connectFuture.awaitUninterruptibly();
+//
+        logger.debug("Client connecting to {}", socketAddr);
+
+        if(connectFuture.isDone()){
+
+            if (connectFuture.isCancelled()) {
+                logger.warn("Client connection cancelled.");
+                sessionHandler.connectionFailed(new InterruptedException("connectFuture cancelled by user"));
+                return;
+            } else if (!connectFuture.isSuccess()) {
+                if (connectFuture.cause() instanceof ConnectTimeoutException) {
+                    logger.warn("Client did not connect in timeout ", connectFuture.cause());
+                    sessionHandler.connectionFailed(new SmppChannelConnectTimeoutException("Unable to connect to host [" + host + "] and port [" + port + "] within " + connectTimeoutMillis + " ms", connectFuture.cause()));
+                } else {
+                    logger.warn("Client did not connect.", connectFuture.cause());
+                    sessionHandler.connectionFailed(new SmppChannelConnectException("Unable to connect to host [" + host + "] and port [" + port + "]: " +
+                        (connectFuture.cause() != null ? connectFuture.cause().getMessage() : "ChannelFuture failed without cause."), connectFuture.cause()));
+                }
+                return;
+            }
+
+            // do connected
+            logger.debug("Client connected to {}", socketAddr);
+            clientChannel = connectFuture.channel();
+
+            try {
+                DefaultSmppSession session = createSessionAsync(clientChannel, config, sessionHandler);
+                sessionHandler.connectionSuccess(session);
+            } catch (Exception e) {
+                logger.warn("createSessionAsync error {}", e.getMessage());
+                clientChannel = null;
+                sessionHandler.connectionFailed(e);
+            }
+
+        } else {
+
+            connectFuture.addListener(new ChannelFutureListener() {
+                public void operationComplete(ChannelFuture future) {
+
+                    if (future.isCancelled()) {
+                        logger.warn("Client connection cancelled.");
+                        sessionHandler.connectionFailed(new InterruptedException("connectFuture cancelled by user"));
+                        return;
+                    } else if (!future.isSuccess()) {
+                        if (future.cause() instanceof ConnectTimeoutException) {
+                            logger.warn("Client did not connect in timeout ", future.cause());
+                            sessionHandler.connectionFailed(new SmppChannelConnectTimeoutException("Unable to connect to host [" + host + "] and port [" + port + "] within " + connectTimeoutMillis + " ms", future.cause()));
+                        } else {
+                            logger.warn("Client did not connect.", future.cause());
+                            sessionHandler.connectionFailed(new SmppChannelConnectException("Unable to connect to host [" + host + "] and port [" + port + "]: " +
+                                (future.cause() != null ? future.cause().getMessage() : "ChannelFuture failed without cause."), future.cause()));
+                        }
+                        return;
+                    }
+
+                    // do connected
+                    logger.debug("Client connected to {}", socketAddr);
+                    clientChannel = future.channel();
+
+                    try {
+                        DefaultSmppSession session = createSessionAsync(clientChannel, config, sessionHandler);
+                        sessionHandler.connectionSuccess(session);
+                    } catch (Exception e) {
+                        logger.warn("createSessionAsync error {}", e.getMessage());
+                        clientChannel = null;
+                        sessionHandler.connectionFailed(e);
+                    }
+                }
+            });
+
+        }
+
+
+
+        // if we get here, then we were able to connect and get a channel
+//        return connectFuture.channel();
+    }
+
+    protected DefaultSmppSession createSessionAsync(Channel channel, SmppSessionConfiguration config, SmppSessionHandler sessionHandler) throws SmppTimeoutException, SmppChannelException, InterruptedException {
+
+        if(channel == null){
+            throw new SmppChannelException("Channel is null");
+        }
+
+        DefaultSmppSession session = new DefaultSmppSession(SmppSession.Type.CLIENT, config, channel, sessionHandler, monitorExecutor);
+
+        //TODO @trustin: Please consider using the new SSL abstraction introduced in Netty 4.0.19.
+        //               It will also allow you to accelerate SSL performance using OpenSSL.
+        //               It might also be a good idea to set the sensible list of enabled cipher
+        //               suites rather than the JDK default. E.g.:
+        //     "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256", // since JDK 8
+        //     "TLS_ECDHE_RSA_WITH_RC4_128_SHA",
+        //     "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+        //     "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
+        //     "TLS_RSA_WITH_AES_128_GCM_SHA256", // since JDK 8
+        //     "SSL_RSA_WITH_RC4_128_SHA",
+        //     "SSL_RSA_WITH_RC4_128_MD5",
+        //     "TLS_RSA_WITH_AES_128_CBC_SHA",
+        //     "TLS_RSA_WITH_AES_256_CBC_SHA",
+        //     "SSL_RSA_WITH_DES_CBC_SHA"
+
+        // add SSL handler
+        if (config.isUseSsl()) {
+            SslConfiguration sslConfig = config.getSslConfiguration();
+            if (sslConfig == null) throw new IllegalStateException("sslConfiguration must be set");
+            try {
+                SslContextFactory factory = new SslContextFactory(sslConfig);
+                SSLEngine sslEngine = factory.newSslEngine();
+                sslEngine.setUseClientMode(true);
+                channel.pipeline().addLast(SmppChannelConstants.PIPELINE_SESSION_SSL_NAME, new SslHandler(sslEngine));
+            } catch (Exception e) {
+                throw new SmppChannelConnectException("Unable to create SSL session]: " + e.getMessage(), e);
+            }
+        }
+        // add the thread renamer portion to the pipeline
+        if (config.getName() != null) {
+            channel.pipeline().addLast(SmppChannelConstants.PIPELINE_SESSION_THREAD_RENAMER_NAME, new SmppSessionThreadRenamer(config.getName()));
+        } else {
+            logger.warn("Session configuration did not have a name set - skipping threadRenamer in pipeline");
+        }
+
+        // create the logging handler (for bytes sent/received on wire)
+        SmppSessionLogger loggingHandler = new SmppSessionLogger(DefaultSmppSession.class.getCanonicalName(), config.getLoggingOptions());
+        channel.pipeline().addLast(SmppChannelConstants.PIPELINE_SESSION_LOGGER_NAME, loggingHandler);
+
+        // add a writeTimeout handler after the logger
+        if (config.getWriteTimeout() > 0) {
+            WriteTimeoutHandler writeTimeoutHandler = new WriteTimeoutHandler(config.getWriteTimeout(), TimeUnit.MILLISECONDS);
+            channel.pipeline().addLast(SmppChannelConstants.PIPELINE_SESSION_WRITE_TIMEOUT_NAME, writeTimeoutHandler);
+        }
+
+        // add a new instance of a decoder (that takes care of handling frames)
+        channel.pipeline().addLast(SmppChannelConstants.PIPELINE_SESSION_PDU_DECODER_NAME, new SmppSessionPduDecoder(session.getTranscoder()));
+
+        // create a new wrapper around a session to pass the pdu up the chain
+        channel.pipeline().addLast(SmppChannelConstants.PIPELINE_SESSION_WRAPPER_NAME, new SmppSessionWrapper(session));
+
+        return session;
     }
 
 }
