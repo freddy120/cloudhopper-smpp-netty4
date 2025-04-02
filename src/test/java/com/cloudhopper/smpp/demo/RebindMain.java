@@ -50,7 +50,7 @@ public class RebindMain {
         // THIS VERSION USES "DAEMON" threads by default
 	// SmppSessionBootstrap bootstrap = new SmppSessionBootstrap();
         // THIS VERSION DOESN'T - WILL HANG JVM UNTIL CLOSED
-        final DefaultSmppClient bootstrap = new DefaultSmppClient(new NioEventLoopGroup());
+        final DefaultSmppClient bootstrap = new DefaultSmppClient(new NioEventLoopGroup(), false);
 
         final DefaultSmppSessionHandler sessionHandler = new ClientSmppSessionHandler();
 

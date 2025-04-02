@@ -59,7 +59,7 @@ public interface DefaultSmppServerMXBean {
     
     public long getBindTimeout();
     
-    public boolean isNonBlockingSocketsEnabled();
+    public boolean isNioSocketsEnabled();
     
     public boolean isReuseAddress();
     

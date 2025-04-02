@@ -33,13 +33,14 @@ import com.cloudhopper.smpp.type.SmppChannelException;
 import com.cloudhopper.smpp.type.SmppProcessingException;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
+import io.netty.channel.epoll.Epoll;
+import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.oio.OioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.channel.socket.oio.OioServerSocketChannel;
 import io.netty.handler.timeout.WriteTimeoutHandler;
 import io.netty.util.concurrent.GlobalEventExecutor;
 import org.slf4j.Logger;
@@ -88,8 +89,10 @@ public class DefaultSmppServer implements SmppServer, DefaultSmppServerMXBean {
      */
     public DefaultSmppServer(SmppServerConfiguration configuration, SmppServerHandler serverHandler) {
         this(configuration, serverHandler, null,
-                configuration.isNonBlockingSocketsEnabled() ? new NioEventLoopGroup() : new OioEventLoopGroup(),
-                configuration.isNonBlockingSocketsEnabled() ? new NioEventLoopGroup() : new OioEventLoopGroup());
+                configuration.isNioSocketsEnabled() ? new NioEventLoopGroup() : (Epoll.isAvailable()? new EpollEventLoopGroup() : new NioEventLoopGroup()),
+                configuration.isNioSocketsEnabled() ? new NioEventLoopGroup() : (Epoll.isAvailable()? new EpollEventLoopGroup() : new NioEventLoopGroup()));
+        if(!configuration.isNioSocketsEnabled())
+          logger.info("Using Epoll {}", Epoll.isAvailable());
     }
 
     /**
@@ -122,10 +125,10 @@ public class DefaultSmppServer implements SmppServer, DefaultSmppServerMXBean {
         this.serverBootstrap = new ServerBootstrap();
 
         // a factory for creating channels (connections)
-        if (configuration.isNonBlockingSocketsEnabled()) {
+        if (configuration.isNioSocketsEnabled()) {
             this.serverBootstrap.channel(NioServerSocketChannel.class);
         } else {
-            this.serverBootstrap.channel(OioServerSocketChannel.class);
+            this.serverBootstrap.channel(EpollServerSocketChannel.class);
         }
 
         this.bossGroup = bossGroup;
@@ -134,8 +137,12 @@ public class DefaultSmppServer implements SmppServer, DefaultSmppServerMXBean {
 
         // set options for the server socket that are useful
         this.serverBootstrap.option(ChannelOption.SO_REUSEADDR, configuration.isReuseAddress());
-        
-        // we use the same default pipeline for all new channels - no need for a factory
+        this.serverBootstrap.option(ChannelOption.TCP_NODELAY, true);
+//        this.serverBootstrap.option(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(64 * 1024, 128 * 1024)); // Tune write buffer
+
+//        this.serverBootstrap.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
+
+      // we use the same default pipeline for all new channels - no need for a factory
         this.serverConnector = new SmppServerConnector(channels, this);
 
         this.serverBootstrap.childHandler(new ChannelInitializer<SocketChannel>() {
@@ -488,8 +495,8 @@ public class DefaultSmppServer implements SmppServer, DefaultSmppServerMXBean {
     }
 
     @Override
-    public boolean isNonBlockingSocketsEnabled() {
-        return this.configuration.isNonBlockingSocketsEnabled();
+    public boolean isNioSocketsEnabled() {
+        return this.configuration.isNioSocketsEnabled();
     }
     
     @Override

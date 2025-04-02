@@ -174,7 +174,7 @@ public class SslSessionTest {
         DefaultSmppServer server0 = createSmppServer(createServerConfigurationWeakSSL());
         server0.start();
 
-        DefaultSmppClient client0 = new DefaultSmppClient();
+        DefaultSmppClient client0 = new DefaultSmppClient(false);
         SmppSessionConfiguration sessionConfig0 = createClientConfigurationNoSSL();
         // verify that the bad connection is detected earlier than the 30 second timeouts
         sessionConfig0.setConnectTimeout(30000);
@@ -201,7 +201,7 @@ public class SslSessionTest {
         DefaultSmppServer server0 = createSmppServer(createServerConfigurationNoSSL());
         server0.start();
 
-        DefaultSmppClient client0 = new DefaultSmppClient();
+        DefaultSmppClient client0 = new DefaultSmppClient(false);
         SmppSessionConfiguration sessionConfig0 = createClientConfigurationWeakSSL();
         // the server immediately closed the connection and there is a workaround
         // enabled to detect this closure much faster than a 30 second connect timeout
@@ -232,7 +232,7 @@ public class SslSessionTest {
         DefaultSmppServer server0 = createSmppServer(createServerConfigurationWeakSSL());
         server0.start();
 
-        DefaultSmppClient client0 = new DefaultSmppClient();
+        DefaultSmppClient client0 = new DefaultSmppClient(false);
         SmppSessionConfiguration sessionConfig0 = createClientConfigurationWeakSSL();
 
         try {
@@ -265,7 +265,7 @@ public class SslSessionTest {
         DefaultSmppServer server0 = createSmppServer(createServerConfigurationWeakSSL());
         server0.start();
 
-        DefaultSmppClient client0 = new DefaultSmppClient();
+        DefaultSmppClient client0 = new DefaultSmppClient(false);
         SmppSessionConfiguration sessionConfig0 = createClientConfigurationWeakSSL();
 
         try {
@@ -289,7 +289,7 @@ public class SslSessionTest {
         DefaultSmppServer server0 = createSmppServer(createServerConfigurationStrongSSL());
         server0.start();
 
-        DefaultSmppClient client0 = new DefaultSmppClient();
+        DefaultSmppClient client0 = new DefaultSmppClient(false);
         SmppSessionConfiguration sessionConfig0 = createClientConfigurationStrongSSL();
 
         try {
@@ -311,7 +311,7 @@ public class SslSessionTest {
         DefaultSmppServer server0 = createSmppServer(createServerConfigurationStrongSSL());
         server0.start();
 
-        DefaultSmppClient client0 = new DefaultSmppClient();
+        DefaultSmppClient client0 = new DefaultSmppClient(false);
         SmppSessionConfiguration sessionConfig0 = createClientConfigurationWeakSSL();
         try {
             // this should fail

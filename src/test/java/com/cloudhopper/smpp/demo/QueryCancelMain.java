@@ -78,7 +78,7 @@ public class QueryCancelMain {
         // used for NIO sockets essentially uses this value as the max number of
         // threads it will ever use, despite the "max pool size", etc. set on
         // the executor passed in here
-        DefaultSmppClient clientBootstrap = new DefaultSmppClient(group, monitorExecutor);
+        DefaultSmppClient clientBootstrap = new DefaultSmppClient(group, monitorExecutor, false);
 
         //
         // setup configuration for a client session

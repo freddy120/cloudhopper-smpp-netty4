@@ -62,7 +62,7 @@ public class DefaultSmppSessionTest {
     public static void startSimulator() {
         server = new SmppSimulatorServer();
         server.start(PORT);
-        bootstrap = new DefaultSmppClient();
+        bootstrap = new DefaultSmppClient(false);
     }
 
     @AfterClass

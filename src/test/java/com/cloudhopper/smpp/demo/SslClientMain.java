@@ -77,7 +77,7 @@ public class SslClientMain {
         // used for NIO sockets essentially uses this value as the max number of
         // threads it will ever use, despite the "max pool size", etc. set on
         // the executor passed in here
-        DefaultSmppClient clientBootstrap = new DefaultSmppClient(group);
+        DefaultSmppClient clientBootstrap = new DefaultSmppClient(group, false);
 
         //
         // setup configuration for a client session

@@ -121,7 +121,7 @@ public class DefaultSmppServerTest {
         server0.start();
 
         try {
-            DefaultSmppClient client0 = new DefaultSmppClient();
+            DefaultSmppClient client0 = new DefaultSmppClient(false);
             SmppSessionConfiguration sessionConfig0 = createDefaultConfiguration();
             // this should actually work
             SmppSession session0 = client0.bind(sessionConfig0);
@@ -152,7 +152,7 @@ public class DefaultSmppServerTest {
         server0.start();
 
         try {
-            DefaultSmppClient client0 = new DefaultSmppClient();
+            DefaultSmppClient client0 = new DefaultSmppClient(false);
             SmppSessionConfiguration sessionConfig0 = createDefaultConfiguration();
             sessionConfig0.setSystemId("TESTID");
 
@@ -180,7 +180,7 @@ public class DefaultSmppServerTest {
         server0.start();
 
         try {
-            DefaultSmppClient client0 = new DefaultSmppClient();
+            DefaultSmppClient client0 = new DefaultSmppClient(false);
             SmppSessionConfiguration sessionConfig0 = createDefaultConfiguration();
             sessionConfig0.setSystemId(SYSTEMID);
             sessionConfig0.setPassword("BADPASS");
@@ -209,7 +209,7 @@ public class DefaultSmppServerTest {
         server0.start();
 
         try {
-            DefaultSmppClient client0 = new DefaultSmppClient();
+            DefaultSmppClient client0 = new DefaultSmppClient(false);
             SmppSessionConfiguration sessionConfig0 = createDefaultConfiguration();
 
             // set back to version 3.3
@@ -266,7 +266,7 @@ public class DefaultSmppServerTest {
         server0.start();
 
         try {
-            DefaultSmppClient client0 = new DefaultSmppClient();
+            DefaultSmppClient client0 = new DefaultSmppClient(false);
             SmppSessionConfiguration sessionConfig0 = createDefaultConfiguration();
 
             // set to version 3.1
@@ -323,7 +323,7 @@ public class DefaultSmppServerTest {
         server0.start();
 
         try {
-            DefaultSmppClient client0 = new DefaultSmppClient();
+            DefaultSmppClient client0 = new DefaultSmppClient(false);
             SmppSessionConfiguration sessionConfig0 = createDefaultConfiguration();
 
             // set to version 3.4
@@ -384,7 +384,7 @@ public class DefaultSmppServerTest {
         server0.start();
 
         try {
-            DefaultSmppClient client0 = new DefaultSmppClient();
+            DefaultSmppClient client0 = new DefaultSmppClient(false);
             SmppSessionConfiguration sessionConfig0 = createDefaultConfiguration();
 
             // set to version 3.5
@@ -446,7 +446,7 @@ public class DefaultSmppServerTest {
         server0.start();
 
         try {
-            DefaultSmppClient client0 = new DefaultSmppClient();
+            DefaultSmppClient client0 = new DefaultSmppClient(false);
             SmppSessionConfiguration sessionConfig0 = createDefaultConfiguration();
 
             // we will not use the proper method of binding since we need to
@@ -518,7 +518,7 @@ public class DefaultSmppServerTest {
             // technicaly "starve" the server of worker threads since they'll all
             // be blocked in a Thread.sleep
             for (int i = 0; i < workersToStarveWith; i++) {
-                DefaultSmppClient client0 = new DefaultSmppClient();
+                DefaultSmppClient client0 = new DefaultSmppClient(false);
                 SmppSessionConfiguration sessionConfig0 = createDefaultConfiguration();
                 sessionConfig0.setName("WorkerTest.Session." + i);
                 // don't use default method of binding, connect the socket first
@@ -530,7 +530,7 @@ public class DefaultSmppServerTest {
 
             // now try to bind normally -- since all previous workers are "starved"
             // this should fail to bind and the socket closed by the "BindTimer"
-            DefaultSmppClient client0 = new DefaultSmppClient();
+            DefaultSmppClient client0 = new DefaultSmppClient(false);
             SmppSessionConfiguration sessionConfig0 = createDefaultConfiguration();
             sessionConfig0.setName("WorkerTestChannelClosed.Session");
             sessionConfig0.setBindTimeout(750);

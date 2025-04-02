@@ -48,7 +48,7 @@ public class SlowServerMain {
         SmppServerConfiguration configuration = new SmppServerConfiguration();
         configuration.setPort(2776);
         configuration.setMaxConnectionSize(10);
-        configuration.setNonBlockingSocketsEnabled(false);
+        configuration.setNioSocketsEnabled(false);
         
         SmppServer smppServer = new DefaultSmppServer(configuration, new DefaultSmppServerHandler());
 

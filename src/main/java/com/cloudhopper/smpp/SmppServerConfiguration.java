@@ -47,7 +47,7 @@ public class SmppServerConfiguration extends SmppConnectionConfiguration {
     // this number corrosponds to the number of worker threads handling reading
     // data from sockets and the thread things will be processed under
     private int maxConnectionSize;
-    private boolean nonBlockingSocketsEnabled;
+    private boolean nioSocketsEnabled;
     private boolean reuseAddress;
     // jmx options
     private boolean jmxEnabled;
@@ -67,7 +67,7 @@ public class SmppServerConfiguration extends SmppConnectionConfiguration {
         this.autoNegotiateInterfaceVersion = true;
         this.interfaceVersion = SmppConstants.VERSION_3_4;
         this.maxConnectionSize = SmppConstants.DEFAULT_SERVER_MAX_CONNECTION_SIZE;
-        this.nonBlockingSocketsEnabled = SmppConstants.DEFAULT_SERVER_NON_BLOCKING_SOCKETS_ENABLED;
+        this.nioSocketsEnabled = SmppConstants.DEFAULT_SERVER_NON_BLOCKING_SOCKETS_ENABLED;
         this.reuseAddress = SmppConstants.DEFAULT_SERVER_REUSE_ADDRESS;
         this.jmxEnabled = false;
         this.jmxDomain = "com.cloudhopper.smpp";
@@ -101,18 +101,18 @@ public class SmppServerConfiguration extends SmppConnectionConfiguration {
         this.reuseAddress = reuseAddress;
     }
 
-    public boolean isNonBlockingSocketsEnabled() {
-        return nonBlockingSocketsEnabled;
+    public boolean isNioSocketsEnabled() {
+        return nioSocketsEnabled;
     }
 
     /**
      * Sets if non-blocking (NIO) is used for this server.  If true, then the
      * NIO server socket is used for Netty, otherwise the normal blocking
      * server socket will be used.
-     * @param nonBlockingSocketsEnabled True if enabled, otherwise false 
+     * @param nioSocketsEnabled True if enabled, otherwise false
      */
-    public void setNonBlockingSocketsEnabled(boolean nonBlockingSocketsEnabled) {
-        this.nonBlockingSocketsEnabled = nonBlockingSocketsEnabled;
+    public void setNioSocketsEnabled(boolean nioSocketsEnabled) {
+        this.nioSocketsEnabled = nioSocketsEnabled;
     }
 
     public int getMaxConnectionSize() {

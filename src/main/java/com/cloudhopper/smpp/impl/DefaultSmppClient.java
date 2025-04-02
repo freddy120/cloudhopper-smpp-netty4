@@ -26,38 +26,26 @@ import com.cloudhopper.smpp.pdu.*;
 import com.cloudhopper.smpp.ssl.SslConfiguration;
 import com.cloudhopper.smpp.ssl.SslContextFactory;
 import com.cloudhopper.smpp.type.*;
-import com.cloudhopper.smpp.type.RecoverablePduException;
-import com.cloudhopper.smpp.type.SmppBindException;
-import com.cloudhopper.smpp.type.SmppChannelConnectException;
-import com.cloudhopper.smpp.type.SmppChannelConnectTimeoutException;
-import com.cloudhopper.smpp.type.UnrecoverablePduException;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
+import io.netty.channel.epoll.Epoll;
+import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.epoll.EpollSocketChannel;
 import io.netty.channel.group.ChannelGroup;
-import io.netty.channel.group.ChannelGroupFutureListener;
 import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.oio.OioEventLoopGroup;
-import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.channel.socket.oio.OioSocketChannel;
-import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.GlobalEventExecutor;
-import java.net.InetSocketAddress;
-import java.net.InetSocketAddress;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.SSLEngine;
+import java.net.InetSocketAddress;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Default implementation to "bootstrap" client SMPP sessions (create & bind).
@@ -70,7 +58,7 @@ public class DefaultSmppClient implements SmppClient {
     private final ChannelGroup channels;
     private final SmppClientConnector clientConnector;
     private Bootstrap clientBootstrap;
-    private final NioEventLoopGroup workerGroup;
+    private final EventLoopGroup workerGroup;
     private final ScheduledExecutorService monitorExecutor;
     private Channel clientChannel;
 
@@ -81,11 +69,13 @@ public class DefaultSmppClient implements SmppClient {
      * created with this SmppClient will be Runtime.getRuntime().availableProcessors().
      * An Executors.newCachedDaemonThreadPool will be used for IO worker threads.
      */
-    public DefaultSmppClient() {
+    public DefaultSmppClient(boolean epollGroup) {
         //this(new NioEventLoopGroup());
 	//@trustin: new NioEventLoopGroup() does not create daemon threads. You have to specify a ThreadFactory do to that. For example:
-	this(new NioEventLoopGroup(0, new DefaultThreadFactory(SmppClient.class, true)));
+	      this(epollGroup && Epoll.isAvailable() ? new EpollEventLoopGroup(0, new DefaultThreadFactory(SmppClient.class, true)) :
+            new NioEventLoopGroup(0, new DefaultThreadFactory(SmppClient.class, true)), epollGroup);
 	//.. where DefaultThreadFactory is a new utility class in Netty 4.
+
     }
 
     /**
@@ -97,8 +87,8 @@ public class DefaultSmppClient implements SmppClient {
      *     for the to-be-creates {@link Channel}. The max threads will never grow more
      *     than expectedSessions if NIO sockets are used.
      */
-    public DefaultSmppClient(NioEventLoopGroup workerGroup) {
-        this(workerGroup, null);
+    public DefaultSmppClient(EventLoopGroup workerGroup, boolean epollGroup) {
+        this(workerGroup, null, epollGroup);
     }
     
     /**
@@ -112,13 +102,23 @@ public class DefaultSmppClient implements SmppClient {
      *      to monitor themselves and expire requests.  If null monitoring will
      *      be disabled.
      */
-    public DefaultSmppClient(NioEventLoopGroup workerGroup, ScheduledExecutorService monitorExecutor) {
+    public DefaultSmppClient(EventLoopGroup workerGroup, ScheduledExecutorService monitorExecutor, boolean epollGroup) {
         //The doc says about GlobalEventExecutor: Please note it is not scalable to schedule large number of tasks to this executor; use a dedicated executor.
         this.channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
         this.workerGroup = workerGroup;
         this.clientBootstrap = new Bootstrap();
         this.clientBootstrap.group(this.workerGroup);
-        this.clientBootstrap.channel(NioSocketChannel.class);
+        if(epollGroup && Epoll.isAvailable()){
+            this.clientBootstrap.channel(EpollSocketChannel.class);
+        }else {
+            this.clientBootstrap.channel(NioSocketChannel.class);
+        }
+
+        this.clientBootstrap.option(ChannelOption.SO_REUSEADDR, true);
+        this.clientBootstrap.option(ChannelOption.TCP_NODELAY, true);
+//        this.clientBootstrap.option(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(32 * 1024, 64 * 1024)); // Optimize write buffer
+
+
         // we use the same default pipeline for all new channels - no need for a factory
         this.clientConnector = new SmppClientConnector(this.channels);
 	//@trustin: You don't need to use a ChannelInitializer in this case, because all it does is to replace itself with the clientConnector.
@@ -130,7 +130,7 @@ public class DefaultSmppClient implements SmppClient {
             }
         });
 	*/
-	this.clientBootstrap.handler(this.clientConnector);
+	      this.clientBootstrap.handler(this.clientConnector);
         this.monitorExecutor = monitorExecutor;
     }
     

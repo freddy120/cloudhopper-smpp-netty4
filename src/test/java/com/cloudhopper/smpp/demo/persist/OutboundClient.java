@@ -93,7 +93,7 @@ public class OutboundClient extends Client {
 		// used for NIO sockets essentially uses this value as the max number of
 		// threads it will ever use, despite the "max pool size", etc. set on
 		// the executor passed in here
-		clientBootstrap = new DefaultSmppClient(group, monitorExecutor);
+		clientBootstrap = new DefaultSmppClient(group, monitorExecutor, false);
 	}
 
 	public void initialize(SmppSessionConfiguration config, SmppClientMessageService smppClientMessageService) {
