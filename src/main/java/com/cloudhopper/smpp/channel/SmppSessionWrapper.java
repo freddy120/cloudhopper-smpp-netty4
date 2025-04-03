@@ -24,6 +24,7 @@ import com.cloudhopper.smpp.impl.SmppSessionChannelListener;
 import com.cloudhopper.smpp.pdu.Pdu;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,6 +63,7 @@ public class SmppSessionWrapper extends SimpleChannelInboundHandler<Pdu> {
      */
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        logger.warn("exceptionCaught {}", ExceptionUtils.getStackTrace(cause));
         this.listener.fireExceptionThrown(cause.getCause());
     }
 }
