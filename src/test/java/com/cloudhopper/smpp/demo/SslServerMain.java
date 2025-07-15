@@ -72,7 +72,7 @@ public class SslServerMain {
         SmppServerConfiguration configuration = new SmppServerConfiguration();
         configuration.setPort(2777);
         configuration.setMaxConnectionSize(10);
-        configuration.setNioSocketsEnabled(true);
+        configuration.setUseEpoll(true);
         configuration.setDefaultRequestExpiryTimeout(30000);
         configuration.setDefaultWindowMonitorInterval(15000);
         configuration.setDefaultWindowSize(5);

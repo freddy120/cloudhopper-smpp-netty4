@@ -69,14 +69,37 @@ public class DefaultSmppClient implements SmppClient {
      * created with this SmppClient will be Runtime.getRuntime().availableProcessors().
      * An Executors.newCachedDaemonThreadPool will be used for IO worker threads.
      */
+
+    public DefaultSmppClient(boolean epollGroup, EventLoopGroup workerGroup) {
+        //this(new NioEventLoopGroup());
+        //@trustin: new NioEventLoopGroup() does not create daemon threads. You have to specify a ThreadFactory do to that. For example:
+        this(workerGroup, epollGroup);
+
+//        this(epollGroup && Epoll.isAvailable() ? new EpollEventLoopGroup(0, new DefaultThreadFactory(SmppClient.class, true)) :
+//            new NioEventLoopGroup(0, new DefaultThreadFactory(SmppClient.class, true)), epollGroup);
+        //.. where DefaultThreadFactory is a new utility class in Netty 4.
+
+    }
+
+    @Deprecated
     public DefaultSmppClient(boolean epollGroup) {
         //this(new NioEventLoopGroup());
 	//@trustin: new NioEventLoopGroup() does not create daemon threads. You have to specify a ThreadFactory do to that. For example:
-	      this(epollGroup && Epoll.isAvailable() ? new EpollEventLoopGroup(0, new DefaultThreadFactory(SmppClient.class, true)) :
-            new NioEventLoopGroup(0, new DefaultThreadFactory(SmppClient.class, true)), epollGroup);
+	      this(new NioEventLoopGroup(0, new DefaultThreadFactory(SmppClient.class, true)), false);
 	//.. where DefaultThreadFactory is a new utility class in Netty 4.
 
     }
+
+
+//    @Deprecated
+//    public DefaultSmppClient(boolean epollGroup) {
+//        //this(new NioEventLoopGroup());
+//	//@trustin: new NioEventLoopGroup() does not create daemon threads. You have to specify a ThreadFactory do to that. For example:
+//	      this(epollGroup && Epoll.isAvailable() ? new EpollEventLoopGroup(0, new DefaultThreadFactory(SmppClient.class, true)) :
+//            new NioEventLoopGroup(0, new DefaultThreadFactory(SmppClient.class, true)), epollGroup);
+//	//.. where DefaultThreadFactory is a new utility class in Netty 4.
+//
+//    }
 
     /**
      * Creates a new default SmppClient. Window monitoring and automatic
@@ -108,7 +131,7 @@ public class DefaultSmppClient implements SmppClient {
         this.workerGroup = workerGroup;
         this.clientBootstrap = new Bootstrap();
         this.clientBootstrap.group(this.workerGroup);
-        if(epollGroup && Epoll.isAvailable()){
+        if(epollGroup){
             this.clientBootstrap.channel(EpollSocketChannel.class);
         }else {
             this.clientBootstrap.channel(NioSocketChannel.class);

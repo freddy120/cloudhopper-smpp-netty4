@@ -58,8 +58,8 @@ public interface DefaultSmppServerMXBean {
     public int getConnectionSize();
     
     public long getBindTimeout();
-    
-    public boolean isNioSocketsEnabled();
+
+    public boolean isUseEpoll();
     
     public boolean isReuseAddress();
     

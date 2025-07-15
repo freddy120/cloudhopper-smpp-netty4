@@ -70,7 +70,7 @@ public class ServerEchoMain {
         SmppServerConfiguration configuration = new SmppServerConfiguration();
         configuration.setPort(2776);
         configuration.setMaxConnectionSize(10);
-        configuration.setNioSocketsEnabled(true);
+        configuration.setUseEpoll(true);
         configuration.setDefaultRequestExpiryTimeout(30000);
         configuration.setDefaultWindowMonitorInterval(15000);
         configuration.setDefaultWindowSize(5);

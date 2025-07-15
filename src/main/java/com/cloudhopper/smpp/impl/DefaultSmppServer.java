@@ -87,13 +87,24 @@ public class DefaultSmppServer implements SmppServer, DefaultSmppServerMXBean {
      * @param serverHandler The handler implementation for handling bind requests
      *      and creating/destroying sessions.
      */
-    public DefaultSmppServer(SmppServerConfiguration configuration, SmppServerHandler serverHandler) {
-        this(configuration, serverHandler, null,
-                configuration.isNioSocketsEnabled() ? new NioEventLoopGroup() : (Epoll.isAvailable()? new EpollEventLoopGroup() : new NioEventLoopGroup()),
-                configuration.isNioSocketsEnabled() ? new NioEventLoopGroup() : (Epoll.isAvailable()? new EpollEventLoopGroup() : new NioEventLoopGroup()));
-        if(!configuration.isNioSocketsEnabled())
-          logger.info("Using Epoll {}", Epoll.isAvailable());
+    public DefaultSmppServer(SmppServerConfiguration configuration, SmppServerHandler serverHandler, EventLoopGroup bossGroup, EventLoopGroup workerGroup) {
+      this(configuration, serverHandler, null, bossGroup, workerGroup);
     }
+
+    @Deprecated
+    public DefaultSmppServer(SmppServerConfiguration configuration, SmppServerHandler serverHandler) {
+        this(configuration, serverHandler, null, new NioEventLoopGroup(1), new NioEventLoopGroup());
+    }
+
+
+//    @Deprecated
+//    public DefaultSmppServer(SmppServerConfiguration configuration, SmppServerHandler serverHandler) {
+//        this(configuration, serverHandler, null,
+//                configuration.isUseEpoll() ? new NioEventLoopGroup() : (Epoll.isAvailable()? new EpollEventLoopGroup() : new NioEventLoopGroup()),
+//                configuration.isUseEpoll() ? new NioEventLoopGroup() : (Epoll.isAvailable()? new EpollEventLoopGroup() : new NioEventLoopGroup()));
+//        if(!configuration.isUseEpoll())
+//          logger.info("Using Epoll {}", Epoll.isAvailable());
+//    }
 
     /**
      * Creates a new default SmppServer.
@@ -125,10 +136,10 @@ public class DefaultSmppServer implements SmppServer, DefaultSmppServerMXBean {
         this.serverBootstrap = new ServerBootstrap();
 
         // a factory for creating channels (connections)
-        if (configuration.isNioSocketsEnabled()) {
-            this.serverBootstrap.channel(NioServerSocketChannel.class);
+        if (configuration.isUseEpoll()) {
+          this.serverBootstrap.channel(EpollServerSocketChannel.class);
         } else {
-            this.serverBootstrap.channel(EpollServerSocketChannel.class);
+          this.serverBootstrap.channel(NioServerSocketChannel.class);
         }
 
         this.bossGroup = bossGroup;
@@ -495,8 +506,8 @@ public class DefaultSmppServer implements SmppServer, DefaultSmppServerMXBean {
     }
 
     @Override
-    public boolean isNioSocketsEnabled() {
-        return this.configuration.isNioSocketsEnabled();
+    public boolean isUseEpoll() {
+        return this.configuration.isUseEpoll();
     }
     
     @Override
