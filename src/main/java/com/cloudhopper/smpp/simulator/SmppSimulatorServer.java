@@ -96,15 +96,15 @@ public class SmppSimulatorServer {
             logger.warn("Thread interrupted closing server channel.", e);
         } finally {
             // Shut down all event loops to terminate all threads.
-            bossGroup.shutdownGracefully();
-            workerGroup.shutdownGracefully();
-            try {
-                // Wait until all threads are terminated.
-                bossGroup.terminationFuture().sync();
-                workerGroup.terminationFuture().sync();
-            } catch (InterruptedException e) {
-                logger.warn("Thread interrupted closing executors.", e);
-            }
+//            bossGroup.shutdownGracefully();
+//            workerGroup.shutdownGracefully();
+//            try {
+//                // Wait until all threads are terminated.
+//                bossGroup.terminationFuture().sync();
+//                workerGroup.terminationFuture().sync();
+//            } catch (InterruptedException e) {
+//                logger.warn("Thread interrupted closing executors.", e);
+//            }
         }
         logger.info("Simulator server stopped");
     }

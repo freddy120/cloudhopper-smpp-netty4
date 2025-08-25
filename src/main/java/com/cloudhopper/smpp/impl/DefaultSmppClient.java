@@ -192,13 +192,13 @@ public class DefaultSmppClient implements SmppClient {
         } finally {
             //TODO: if DefaultSmppClient(workerGroup) it's may be bad idea!
             // Shut down all event loops to terminate all threads.
-            this.workerGroup.shutdownGracefully();
+//            this.workerGroup.shutdownGracefully();
 
             try {
                 // Wait until all threads are terminated.
 //                this.workerGroup.terminationFuture().sync();
 
-                this.workerGroup.terminationFuture();//No blocking. It's async.
+//                this.workerGroup.terminationFuture();//No blocking. It's async.
             } catch (Exception e) {
                 logger.warn("Thread interrupted closing executors.", e);
             }
