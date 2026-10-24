@@ -73,6 +73,30 @@ Library is available via maven central
       <version>5.0.9</version>
     </dependency>
 
+PROXY protocol
+--------------
+
+The server can read a PROXY protocol header (v1 or v2) so that a server behind a
+TCP proxy (e.g. HAProxy) sees the real client address. It is disabled by default.
+To enable it, configure the trusted proxy networks:
+
+    ProxyProtocolConfiguration proxy = new ProxyProtocolConfiguration();
+    proxy.setEnabled(true);
+    proxy.setTrustedProxies(Arrays.asList("10.0.0.0/8", "2001:db8::/32"));
+
+    SmppServerConfiguration config = new SmppServerConfiguration();
+    config.setProxyProtocol(proxy);
+
+ - When enabled, trusted proxies are required and each entry must be a CIDR network
+   or a bare address. Creating the server fails with IllegalArgumentException otherwise.
+ - Only peers inside the trusted networks may send a header, and it is optional for
+   them: a connection without one is a direct connection using its socket address.
+   Headers from any other peer are never parsed.
+ - PROXY TCP4/TCP6: the header's source address and port become the session's remote
+   host and port. UNKNOWN: the socket address is kept.
+ - v2 LOCAL (a proxy health check): the connection is closed without a bind.
+ - A malformed header from a trusted peer: the connection is closed before the bind.
+
 Demo Code / Tutorials
 ---------------------
 

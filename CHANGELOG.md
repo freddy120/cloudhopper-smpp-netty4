@@ -3,6 +3,15 @@ Cloudhopper by Twitter
 
 cloudhopper-smpp
 ----------------
+## 7.4.0-netty4-SNAPSHOT
+ - Opt-in PROXY protocol (v1 and v2) support on DefaultSmppServer, configured with
+   SmppServerConfiguration.setProxyProtocol(). Disabled by default.
+ - Only peers in the configured trusted networks may send a header; a trusted peer
+   may also connect without one. Headers from other peers are never parsed.
+ - Session remote host and port come from the PROXY header's source address when a
+   TCP4/TCP6 header is present; UNKNOWN keeps the socket address, a LOCAL command
+   or a malformed header from a trusted peer closes the connection before the bind.
+
 ## 6.0.0-netty4-beta-2
  - ch-commons-util version bumped from 6.0.1 to 6.0.2 to fix race condition bug
    in WindowFuture:
