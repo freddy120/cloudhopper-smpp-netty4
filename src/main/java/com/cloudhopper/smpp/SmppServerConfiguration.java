@@ -20,6 +20,7 @@ package com.cloudhopper.smpp;
  * #L%
  */
 
+import com.cloudhopper.smpp.proxy.ProxyProtocolConfiguration;
 import com.cloudhopper.smpp.ssl.SslConfiguration;
 import com.cloudhopper.smpp.type.SmppConnectionConfiguration;
 
@@ -58,6 +59,8 @@ public class SmppServerConfiguration extends SmppConnectionConfiguration {
     private long defaultRequestExpiryTimeout = SmppConstants.DEFAULT_REQUEST_EXPIRY_TIMEOUT;
     private long defaultWindowMonitorInterval = SmppConstants.DEFAULT_WINDOW_MONITOR_INTERVAL;
     private boolean defaultSessionCountersEnabled = false;
+    // PROXY protocol support (disabled by default)
+    private ProxyProtocolConfiguration proxyProtocol = new ProxyProtocolConfiguration();
 
     public SmppServerConfiguration() {
         super("0.0.0.0", 2775, SmppConstants.DEFAULT_BIND_TIMEOUT);
@@ -248,6 +251,22 @@ public class SmppServerConfiguration extends SmppConnectionConfiguration {
 
     public void setDefaultSessionCountersEnabled(boolean defaultSessionCountersEnabled) {
         this.defaultSessionCountersEnabled = defaultSessionCountersEnabled;
+    }
+
+    public ProxyProtocolConfiguration getProxyProtocol() {
+        return proxyProtocol;
+    }
+
+    /**
+     * Sets the PROXY protocol configuration. The configuration is never null:
+     * a disabled instance is the default.
+     * @param proxyProtocol The PROXY protocol configuration. Must not be null
+     */
+    public void setProxyProtocol(ProxyProtocolConfiguration proxyProtocol) {
+        if (proxyProtocol == null) {
+            throw new IllegalArgumentException("Proxy protocol configuration must not be null");
+        }
+        this.proxyProtocol = proxyProtocol;
     }
 
 }
