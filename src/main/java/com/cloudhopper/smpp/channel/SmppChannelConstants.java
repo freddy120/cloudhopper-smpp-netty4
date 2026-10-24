@@ -20,6 +20,10 @@ package com.cloudhopper.smpp.channel;
  * #L%
  */
 
+import io.netty.util.AttributeKey;
+
+import java.net.InetSocketAddress;
+
 /**
  * Constants used for SMPP channels and pipelines.
  * 
@@ -28,6 +32,9 @@ package com.cloudhopper.smpp.channel;
 public class SmppChannelConstants {
 
     public static final String PIPELINE_SERVER_CONNECTOR_NAME = "smppServerConnector";
+
+    // optional handler (before the server connector) that reads a PROXY protocol header from trusted peers
+    public static final String PIPELINE_PROXY_PROTOCOL_DETECTOR_NAME = "smppProxyProtocolDetector";
 
     // default channel handler used only during connects
     public static final String PIPELINE_CLIENT_CONNECTOR_NAME = "smppClientConnector";
@@ -39,5 +46,9 @@ public class SmppChannelConstants {
     public static final String PIPELINE_SESSION_WRAPPER_NAME = "smppSessionWrapper";
     public static final String PIPELINE_SESSION_SSL_NAME = "smppSessionSSL"; 
     public static final String PIPELINE_SESSION_WRITE_TIMEOUT_NAME = "smppSessionWriteTimeout";
+
+    // the real client address from a PROXY protocol header, when the channel carried one
+    public static final AttributeKey<InetSocketAddress> ATTR_PROXIED_REMOTE_ADDRESS =
+            AttributeKey.valueOf("proxiedRemoteAddress");
 
 }

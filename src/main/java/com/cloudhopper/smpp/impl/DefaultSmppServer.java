@@ -25,6 +25,8 @@ import com.cloudhopper.smpp.channel.*;
 import com.cloudhopper.smpp.jmx.DefaultSmppServerMXBean;
 import com.cloudhopper.smpp.pdu.BaseBind;
 import com.cloudhopper.smpp.pdu.BaseBindResp;
+import com.cloudhopper.smpp.proxy.ProxyProtocolDetector;
+import com.cloudhopper.smpp.proxy.TrustedNetworks;
 import com.cloudhopper.smpp.tlv.Tlv;
 import com.cloudhopper.smpp.transcoder.DefaultPduTranscoder;
 import com.cloudhopper.smpp.transcoder.DefaultPduTranscoderContext;
@@ -124,6 +126,14 @@ public class DefaultSmppServer implements SmppServer, DefaultSmppServerMXBean {
                              ScheduledExecutorService monitorExecutor, EventLoopGroup bossGroup,
                              EventLoopGroup workerGroup) {
         this.configuration = configuration;
+        // PROXY protocol: validate once and parse the trusted networks once, shared by every channel
+        final TrustedNetworks proxyTrustedNetworks;
+        if (configuration.getProxyProtocol().isEnabled()) {
+            configuration.getProxyProtocol().validate();
+            proxyTrustedNetworks = TrustedNetworks.parse(configuration.getProxyProtocol().getTrustedProxies());
+        } else {
+            proxyTrustedNetworks = null;
+        }
         // the same group we'll put every server channel
 
         //NEW
@@ -159,6 +169,11 @@ public class DefaultSmppServer implements SmppServer, DefaultSmppServerMXBean {
         this.serverBootstrap.childHandler(new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel ch) throws Exception {
+                if (proxyTrustedNetworks != null) {
+                    // before the connector, so it precedes TLS and the PDU decoder
+                    ch.pipeline().addLast(SmppChannelConstants.PIPELINE_PROXY_PROTOCOL_DETECTOR_NAME,
+                            new ProxyProtocolDetector(proxyTrustedNetworks));
+                }
                 ch.pipeline().addLast(SmppChannelConstants.PIPELINE_SERVER_CONNECTOR_NAME, serverConnector);
             }
         });

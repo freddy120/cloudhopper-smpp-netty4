@@ -50,8 +50,19 @@ public class ChannelUtil {
         }        
     }
 
+    /**
+     * The remote host of the channel: the client address from a PROXY protocol
+     * header when the channel carried one, otherwise the socket's peer address.
+     */
     static public String getChannelRemoteHost(Channel channel) {
-        if (channel == null || channel.remoteAddress() == null) {
+        if (channel == null) {
+            return null;
+        }
+        InetSocketAddress proxied = channel.attr(SmppChannelConstants.ATTR_PROXIED_REMOTE_ADDRESS).get();
+        if (proxied != null) {
+            return proxied.getAddress().getHostAddress();
+        }
+        if (channel.remoteAddress() == null) {
             return null;
         }
         // create a channel name
@@ -63,8 +74,19 @@ public class ChannelUtil {
         return null;
     }
 
+    /**
+     * The remote port of the channel: the client port from a PROXY protocol
+     * header when the channel carried one, otherwise the socket's peer port.
+     */
     static public int getChannelRemotePort(Channel channel) {
-        if (channel == null || channel.remoteAddress() == null) {
+        if (channel == null) {
+            return 0;
+        }
+        InetSocketAddress proxied = channel.attr(SmppChannelConstants.ATTR_PROXIED_REMOTE_ADDRESS).get();
+        if (proxied != null) {
+            return proxied.getPort();
+        }
+        if (channel.remoteAddress() == null) {
             return 0;
         }
         // create a channel name
