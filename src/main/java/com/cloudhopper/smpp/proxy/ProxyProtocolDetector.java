@@ -32,6 +32,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.ByteToMessageDecoder;
+import io.netty.handler.codec.DecoderException;
 import io.netty.handler.codec.ProtocolDetectionResult;
 import io.netty.handler.codec.haproxy.HAProxyCommand;
 import io.netty.handler.codec.haproxy.HAProxyMessage;
@@ -192,9 +193,15 @@ public class ProxyProtocolDetector extends ByteToMessageDecoder {
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-            logger.warn("Closing connection from [{}]: malformed PROXY protocol header: {}",
-                    ctx.channel().remoteAddress(), cause.getMessage());
-            close(ctx);
+            if (cause instanceof DecoderException) {
+                // the HAProxy decoder rejected the header (its message quotes the header line, so it is not logged)
+                logger.warn("Closing connection from [{}]: malformed PROXY protocol header ({})",
+                        ctx.channel().remoteAddress(), cause.getClass().getSimpleName());
+                close(ctx);
+                return;
+            }
+            // anything else (e.g. an I/O error on the connection) is not about the header
+            ctx.fireExceptionCaught(cause);
         }
 
         private void close(ChannelHandlerContext ctx) {

@@ -101,6 +101,8 @@ public class ProxyProtocolServerTest {
     private RecordingHandler handler;
     private DefaultSmppServer server;
     private int port;
+    // closes a connection that never sends a valid bind (e.g. an unparsed header)
+    private long bindTimeoutMs = 1000;
 
     @Before
     public void setUp() {
@@ -123,8 +125,7 @@ public class ProxyProtocolServerTest {
         configuration.setPort(port);
         configuration.setName("ProxyProtocolTest");
         configuration.setSystemId("cloudhopper");
-        // a connection that never sends a valid bind (e.g. an unparsed header) is closed after this
-        configuration.setBindTimeout(1000);
+        configuration.setBindTimeout(bindTimeoutMs);
         configuration.getProxyProtocol().setEnabled(proxyEnabled);
         configuration.getProxyProtocol().setTrustedProxies(List.of(trustedProxies));
         server = new DefaultSmppServer(configuration, handler);
@@ -304,6 +305,8 @@ public class ProxyProtocolServerTest {
 
     @Test
     public void malformedHeaderFromTrustedPeerIsClosed() throws Exception {
+        // far longer than the socket read timeout: only the detector can close the connection in time
+        bindTimeoutMs = 30000;
         startServer(true, "127.0.0.1/32");
         try (Socket socket = connect()) {
             OutputStream out = socket.getOutputStream();
@@ -331,6 +334,23 @@ public class ProxyProtocolServerTest {
     }
 
     @Test
+    public void headerSplitBeforeItCanBeDetected() throws Exception {
+        startServer(true, "127.0.0.1/32");
+        byte[] header = ascii("PROXY TCP4 203.0.113.7 172.16.24.10 50000 2775\r\n");
+        try (Socket socket = connect()) {
+            OutputStream out = socket.getOutputStream();
+            // fewer than the 12 bytes needed to recognise a header: the detector must wait
+            out.write(header, 0, 6);
+            out.flush();
+            Thread.sleep(50);
+            out.write(concat(Arrays.copyOfRange(header, 6, header.length), bindRequest()));
+            out.flush();
+            Assert.assertEquals(SmppConstants.STATUS_OK, readBindStatus(socket));
+        }
+        Assert.assertEquals("203.0.113.7", awaitBind().host);
+    }
+
+    @Test
     public void unknownProtocolFallsBackToSocket() throws Exception {
         startServer(true, "127.0.0.1/32");
         try (Socket socket = connect()) {
@@ -344,6 +364,8 @@ public class ProxyProtocolServerTest {
 
     @Test
     public void localCommandIsClosed() throws Exception {
+        // far longer than the socket read timeout: only the detector can close the connection in time
+        bindTimeoutMs = 30000;
         startServer(true, "127.0.0.1/32");
         try (Socket socket = connect()) {
             OutputStream out = socket.getOutputStream();
