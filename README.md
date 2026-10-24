@@ -89,12 +89,15 @@ To enable it, configure the trusted proxy networks:
 
  - When enabled, trusted proxies are required and each entry must be a CIDR network
    or a bare address. Creating the server fails with IllegalArgumentException otherwise.
+   A /0 network is rejected (it would trust every peer); a prefix shorter than /8 (IPv4) or
+   /16 (IPv6) is accepted but logged as a warning.
  - Only peers inside the trusted networks may send a header, and it is optional for
    them: a connection without one is a direct connection using its socket address.
    Headers from any other peer are never parsed.
  - PROXY TCP4/TCP6: the header's source address and port become the session's remote
-   host and port. UNKNOWN: the socket address is kept.
- - v2 LOCAL (a proxy health check): the connection is closed without a bind.
+   host and port (an IPv4-mapped TCP6 source such as ::ffff:203.0.113.7 is stored as the IPv4
+   address). UNKNOWN: the socket address is kept.
+ - v2 LOCAL (a proxy health check): the connection is closed without a bind (logged at DEBUG).
  - A malformed header from a trusted peer: the connection is closed before the bind.
 
 Demo Code / Tutorials

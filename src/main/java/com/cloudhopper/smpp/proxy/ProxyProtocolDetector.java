@@ -170,7 +170,7 @@ public class ProxyProtocolDetector extends ByteToMessageDecoder {
 
         private void apply(ChannelHandlerContext ctx, HAProxyMessage header) {
             if (header.command() == HAProxyCommand.LOCAL) {
-                logger.info("Closing PROXY protocol LOCAL connection from [{}]", ctx.channel().remoteAddress());
+                logger.debug("Closing PROXY protocol LOCAL connection from [{}]", ctx.channel().remoteAddress());
                 close(ctx);
                 return;
             }
@@ -183,7 +183,7 @@ public class ProxyProtocolDetector extends ByteToMessageDecoder {
                     return;
                 }
                 ctx.channel().attr(SmppChannelConstants.ATTR_PROXIED_REMOTE_ADDRESS)
-                        .set(new InetSocketAddress(source, header.sourcePort()));
+                        .set(new InetSocketAddress(unmapIpv4(source), header.sourcePort()));
             } else {
                 logger.debug("PROXY protocol header from [{}] carries no TCP address ({}), keeping the socket address",
                         ctx.channel().remoteAddress(), protocol);

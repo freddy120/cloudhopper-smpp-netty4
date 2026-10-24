@@ -253,6 +253,20 @@ public class ProxyProtocolServerTest {
     }
 
     @Test
+    public void tcp6HeaderWithIpv4MappedSourceIsStoredAsIpv4() throws Exception {
+        startServer(true, "127.0.0.1/32");
+        try (Socket socket = connect()) {
+            OutputStream out = socket.getOutputStream();
+            out.write(concat(ascii("PROXY TCP6 ::ffff:203.0.113.7 ::ffff:172.16.24.10 50000 2775\r\n"), bindRequest()));
+            out.flush();
+            Assert.assertEquals(SmppConstants.STATUS_OK, readBindStatus(socket));
+        }
+        BindSeen seen = awaitBind();
+        Assert.assertEquals("203.0.113.7", seen.host);
+        Assert.assertEquals(50000, seen.port);
+    }
+
+    @Test
     public void trustedPeerWithoutHeaderUsesSocketAddress() throws Exception {
         startServer(true, "127.0.0.1/32");
         try (Socket socket = connect()) {

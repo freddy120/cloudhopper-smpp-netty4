@@ -25,6 +25,10 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 
+// third party imports
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * An immutable set of IPv4 and IPv6 networks given in CIDR notation, used to
  * decide whether a peer address is allowed to send a PROXY protocol header.
@@ -33,8 +37,16 @@ import java.util.List;
  * /128 for IPv6). Addresses must be numeric literals: host names are rejected
  * and no DNS lookups are performed. An IPv4 address never matches an IPv6
  * network and vice versa.
+ * <p>
+ * A /0 prefix (IPv4 or IPv6) is rejected: it would trust every peer, and any
+ * client could then set its own address with a PROXY header. A prefix shorter
+ * than /8 (IPv4) or /16 (IPv6) is accepted but logged as a warning.
  */
 public final class TrustedNetworks {
+    private static final Logger logger = LoggerFactory.getLogger(TrustedNetworks.class);
+
+    private static final int MIN_PREFIX_WITHOUT_WARNING_IPV4 = 8;
+    private static final int MIN_PREFIX_WITHOUT_WARNING_IPV6 = 16;
 
     private final List<Network> networks;
 
@@ -96,6 +108,14 @@ public final class TrustedNetworks {
         int prefixLength = Integer.parseInt(prefixPart);
         if (prefixLength > maxPrefix) {
             throw new IllegalArgumentException("Prefix length out of range in trusted network: " + cidr);
+        }
+        if (prefixLength == 0) {
+            throw new IllegalArgumentException("A /0 prefix would trust every peer and is not allowed in trusted network: " + cidr);
+        }
+        int minPrefix = address.length == 4 ? MIN_PREFIX_WITHOUT_WARNING_IPV4 : MIN_PREFIX_WITHOUT_WARNING_IPV6;
+        if (prefixLength < minPrefix) {
+            logger.warn("Trusted network [{}] is very broad (shorter than /{}): every peer in it may set its own client address with a PROXY header",
+                    cidr, minPrefix);
         }
         return new Network(address, prefixLength);
     }

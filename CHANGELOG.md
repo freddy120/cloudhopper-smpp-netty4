@@ -11,6 +11,9 @@ cloudhopper-smpp
  - Session remote host and port come from the PROXY header's source address when a
    TCP4/TCP6 header is present; UNKNOWN keeps the socket address, a LOCAL command
    or a malformed header from a trusted peer closes the connection before the bind.
+ - A /0 trusted network is rejected (IllegalArgumentException); a prefix shorter than /8 (IPv4)
+   or /16 (IPv6) is accepted with a WARN log. An IPv4-mapped TCP6 source (::ffff:a.b.c.d) is
+   stored as the IPv4 address.
 
 ## 6.0.0-netty4-beta-2
  - ch-commons-util version bumped from 6.0.1 to 6.0.2 to fix race condition bug

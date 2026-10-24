@@ -70,6 +70,35 @@ public class TrustedNetworksTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
+    public void rejectsIpv4SlashZero() {
+        TrustedNetworks.parse(List.of("0.0.0.0/0"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void rejectsIpv6SlashZero() {
+        TrustedNetworks.parse(List.of("::/0"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void rejectsSlashZeroWithNonZeroAddress() {
+        TrustedNetworks.parse(List.of("10.0.0.0/0"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void slashZeroIsRejectedEvenAmongValidEntries() {
+        TrustedNetworks.parse(List.of("10.0.0.0/8", "::/0"));
+    }
+
+    @Test
+    public void broadButNonZeroPrefixesAreAcceptedWithAWarning() throws Exception {
+        // shorter than /8 (IPv4) or /16 (IPv6) is only logged as a warning
+        TrustedNetworks networks = TrustedNetworks.parse(List.of("10.0.0.0/7", "2001::/15"));
+        Assert.assertTrue(networks.contains(ip("11.1.2.3")));
+        Assert.assertTrue(networks.contains(ip("2000::1")));
+        Assert.assertFalse(networks.contains(ip("12.0.0.1")));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
     public void rejectsUnparsableAddress() {
         TrustedNetworks.parse(List.of("not-an-ip/8"));
     }
